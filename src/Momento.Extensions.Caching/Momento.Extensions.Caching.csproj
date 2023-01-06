@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="7.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="7.0.0" />
+
+    <ProjectReference Include="../../../client-sdk-dotnet-incubating/src/Momento.Sdk.Incubating/Momento.Sdk.Incubating.csproj" />
+
+    <Using Include="Microsoft.Extensions.Caching.Distributed" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Microsoft.Extensions.DependencyInjection.Extensions" />
+    <Using Include="Microsoft.Extensions.Internal" />
+    <Using Include="Microsoft.Extensions.Options" />
+    <Using Include="Momento.Sdk.Auth" />
+    <Using Include="Momento.Sdk.Config" />
+    <Using Include="Momento.Sdk.Incubating" />
+    <Using Include="Momento.Sdk.Incubating.Requests" />
+    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldResponse" Alias="GetField" />
+    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldsResponse" Alias="GetFields" />
+    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryIncrementResponse" Alias="Increment" />
+    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionarySetFieldsResponse" Alias="SetFields" />
+    <Using Include="Momento.Sdk.Responses.CacheDeleteResponse" Alias="Delete" />
+    <Using Include="System.Collections.Immutable" />
+    <Using Include="System.ComponentModel.DataAnnotations" />
+    <Using Include="System.Globalization.CultureInfo" Static="true" />
+    <Using Include="System.Text" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.1' ">
+    <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
+  </ItemGroup>
+
+</Project>
