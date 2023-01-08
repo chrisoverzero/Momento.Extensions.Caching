@@ -17,7 +17,6 @@
 namespace Momento.Extensions.Caching;
 
 /// <summary>Configuration options for <see cref="MomentoCache"/>.</summary>
-[SuppressMessage("StyleCop.CSharp.OrderingRules", "SA1206", Justification = "StyleCop doesn't understand required properties.")]
 public sealed class MomentoCacheOptions
     : IOptionsSnapshot<MomentoCacheOptions>
 {

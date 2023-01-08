@@ -24,16 +24,59 @@ namespace Momento.Extensions.Caching;
  *
  * First, values could be stored with only millisecond precision. That saves… four bytes apiece,
  * when present, since the round-trippy formats currently used go out to seven decimal places,
- * and milliseconds use only three. Additionally, the absolute expiration could be time-zoned
- * to "Z". Since it's generated as a UTC value, it will serialize in the round-trip format with
- * an offset "+00:00". That's a savings of another 5 bytes, when present.
+ * and milliseconds use only three.
+ *
+ * ```
+ * 2023-01-08T01:58:46.2383808+00:00
+ * |-------------------------------| 33 bytes
+ *
+ * 2023-01-08T01:58:46.238+00:00
+ * |---------------------------| 29 bytes
+ * ```
+ *
+ * Additionally, the absolute expiration could be time-zoned to "Z". Since it's generated as a
+ * UTC value, it will serialize in the round-trip format with an offset "+00:00". That's a
+ * savings of another 5 bytes, when present.
+ *
+ * ```
+ * 2023-01-08T01:58:46.238Z
+ * |----------------------| 24 bytes
+ * ```
  *
  * Second, the expirations could be stored as raw milliseconds. For a timestamp, that's a savings
- * of 20 bytes, when present. For a timespan, it's variable. When a timespan lacks a fractional
+ * of 20 bytes, when present.
+ *
+ * ```
+ * 2023-01-08T01:58:46.2383808+00:00
+ * |-------------------------------| 33 bytes
+ *
+ * 1673143126238
+ * |-----------| 13 bytes
+ * ```
+ *
+ * For a timespan, it's variable. When a timespan lacks a fractional
  * number of seconds, they're elided from the string representation. This is a savings of 0 bytes
  * or 1 byte (depending on the duration) when present. When fractional seconds are present, the
  * savings are extremely variable, but about 8 bytes for expected TTLs. As an example, the savings
- * for a TTL of 30 seconds is three bytes, but the savings for a TTL of 30.1 seconds is eleven bytes!
+ * for a TTL of 30 seconds is three bytes… but the savings for a TTL of 30.1 seconds is eleven bytes!
+ *
+ * ```
+ * 00:00:30
+ * |------| 8 bytes
+ *
+ * 30000
+ * |---| 5 bytes
+ * ```
+ *
+ * but the savings for a TTL of 30.1 seconds is eleven bytes!
+ *
+ * ```
+ * 00:00:30.1000000
+ * |--------------| 16 bytes
+ *
+ * 30100
+ * |---| 5 bytes
+ * ```
  *
  * Third, those milliseconds could be stored in a binary serialization. This would involve conversion
  * to milliseconds and a call to `BitConverter.GetBytes`. For a timestamp, this is a constant eight
@@ -61,14 +104,12 @@ public sealed class MomentoCache
     static readonly Encoding s_utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
     readonly ISimpleCacheClient _cacheClient;
-    readonly ISystemClock _systemClock;
     readonly MomentoCacheOptions _cacheOpts;
 
     /// <summary>Initializes a new instance of the <see cref="MomentoCache"/> class.</summary>
     /// <param name="cacheClient">The inner cache client.</param>
-    /// <param name="systemClock">A source of system time.</param>
     /// <param name="cacheOpts">The configuration options for the cache.</param>
-    public MomentoCache(ISimpleCacheClient cacheClient, ISystemClock systemClock, IOptionsSnapshot<MomentoCacheOptions> cacheOpts)
+    public MomentoCache(ISimpleCacheClient cacheClient, IOptionsSnapshot<MomentoCacheOptions> cacheOpts)
     {
 #if NETSTANDARD2_1
         if (cacheOpts is null)
@@ -80,7 +121,6 @@ public sealed class MomentoCache
 #endif
 
         _cacheClient = cacheClient;
-        _systemClock = systemClock;
         _cacheOpts = cacheOpts.Value;
     }
 
@@ -124,12 +164,12 @@ public sealed class MomentoCache
         ArgumentNullException.ThrowIfNull(options);
 #endif
 
-        var now = _systemClock.UtcNow;
         var items = new Dictionary<string, byte[]>
         {
             [ValueKey] = value,
         };
 
+        var now = _cacheOpts.Clock.UtcNow;
         CollectionTtl ttl;
         switch ((RelativeExpiration: GetRelativeExpiration(now, options), options.SlidingExpiration))
         {
@@ -166,7 +206,10 @@ public sealed class MomentoCache
             default:
                 /* note(cosborn)
                  * When no expiration is provided, the default TTL as provided when constructing
-                 * the implementation of `ISimpleCacheClient` will be used. This is conf
+                 * the implementation of `ISimpleCacheClient` will be used as configured by the caller.
+                 * This is _not necessarily_ the value of `_cacheOpts.DefaultTtl`, since an instance
+                 * of a custom implementation of `ISimpleCacheClient` could have been resolved from DI.
+                 * Nicely, `CollectionTtl.FromCacheTtl()` (or `default(CollectionTtl)`) means exactly this.
                  */
                 ttl = CollectionTtl.FromCacheTtl();
                 break;
@@ -235,7 +278,7 @@ public sealed class MomentoCache
                  * - the absolute expiration
                  */
                 var absolute = DateTimeOffset.ParseExact(absoluteString, "O", InvariantCulture);
-                ttl = Min(ttl, absolute - _systemClock.UtcNow);
+                ttl = Min(ttl, absolute - _cacheOpts.Clock.UtcNow);
             }
 
             token.ThrowIfCancellationRequested();

@@ -36,16 +36,16 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 #endif
 
-        var optionsBuilder = services.AddOptions<MomentoCacheOptions>();
+        var optionsBuilder = services
+            .AddOptions<MomentoCacheOptions>()
+            .ValidateDataAnnotations()
+            .Validate(o => o.DefaultTtl > TimeSpan.Zero, "The provided default TTL is not a positive duration.");
         if (setupAction is { } sa)
         {
-            _ = optionsBuilder
-                .Configure(sa)
-                .ValidateDataAnnotations()
-                .Validate(o => o.DefaultTtl > TimeSpan.Zero, "The provided default TTL is not a positive duration.");
+            _ = optionsBuilder.Configure(sa);
         }
 
-        services.TryAddSingleton(p =>
+        services.TryAddScoped(p =>
         {
             var config = p.GetRequiredService<IConfiguration>();
             var authProvider = p.GetRequiredService<ICredentialProvider>();
