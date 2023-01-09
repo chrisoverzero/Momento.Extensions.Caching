@@ -54,11 +54,11 @@ namespace Momento.Extensions.Caching;
  * |-----------| 13 bytes
  * ```
  *
- * For a timespan, it's variable. When a timespan lacks a fractional
- * number of seconds, they're elided from the string representation. This is a savings of 0 bytes
- * or 1 byte (depending on the duration) when present. When fractional seconds are present, the
- * savings are extremely variable, but about 8 bytes for expected TTLs. As an example, the savings
- * for a TTL of 30 seconds is three bytes… but the savings for a TTL of 30.1 seconds is eleven bytes!
+ * For a timespan, it's variable. When a timespan lacks a fractional number of seconds, it's
+ * elided from the string representation. This is a small savings (dependent on the dutation)
+ * when present. When fractional seconds are present, the savings are extremely variable, but
+ * about 8 bytes for expected TTLs. As an example, the savings for a TTL of 30 seconds is three
+ * bytes:
  *
  * ```
  * 00:00:30
@@ -68,7 +68,7 @@ namespace Momento.Extensions.Caching;
  * |---| 5 bytes
  * ```
  *
- * but the savings for a TTL of 30.1 seconds is eleven bytes!
+ * …but the savings for a TTL of 30.1 seconds is eleven bytes!
  *
  * ```
  * 00:00:30.1000000
@@ -208,8 +208,9 @@ public sealed class MomentoCache
                  * When no expiration is provided, the default TTL as provided when constructing
                  * the implementation of `ISimpleCacheClient` will be used as configured by the caller.
                  * This is _not necessarily_ the value of `_cacheOpts.DefaultTtl`, since an instance
-                 * of a custom implementation of `ISimpleCacheClient` could have been resolved from DI.
-                 * Nicely, `CollectionTtl.FromCacheTtl()` (or `default(CollectionTtl)`) means exactly this.
+                 * of a custom implementation of `ISimpleCacheClient` could have been resolved from DI
+                 * which ignores this value. (Untidy, but not impossible.) Nicely,
+                 * `CollectionTtl.FromCacheTtl()` (or `default(CollectionTtl)`) means exactly this.
                  */
                 ttl = CollectionTtl.FromCacheTtl();
                 break;
