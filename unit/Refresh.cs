@@ -15,8 +15,8 @@
 // </copyright>
 
 using Google.Protobuf;
-using static Momento.Protos.CacheClient._DictionaryGetResponse.Types;
 using static Momento.Protos.CacheClient.ECacheResult;
+using FieldValue = Momento.Protos.CacheClient._DictionaryGetResponse.Types._DictionaryGetResponsePart;
 
 namespace Momento.Extensions.Caching.Unit;
 
@@ -29,6 +29,11 @@ public static class Refresh
     static readonly ByteString s_absoluteExpirationKey = ByteString.CopyFromUtf8("a");
 
     static readonly ByteString[] s_fields = { s_valueKey, s_slidingExpirationKey, s_absoluteExpirationKey };
+
+    static FieldValue GetFieldMiss => new()
+    {
+        Result = Miss,
+    };
 
     [Property(DisplayName = "A miss returns silently.")]
     public static async Task MissDoesNotThrow(MomentoCacheOptions cacheOpts, NonNull<string> key)
@@ -98,28 +103,7 @@ public static class Refresh
     [Property(DisplayName = "A hit on a value with no slide does not refresh.")]
     public static async Task FixedValueDoesNotRefresh(MomentoCacheOptions cacheOpts, NonNull<string> key, NonEmptyArray<byte> value)
     {
-        var fieldMiss = new _DictionaryGetResponsePart
-        {
-            Result = Miss,
-        };
-        var hit = new GetFields.Hit(
-            s_fields,
-            new()
-            {
-                Found = new()
-                {
-                    Items =
-                    {
-                        new _DictionaryGetResponsePart // value
-                        {
-                            CacheBody = ByteString.CopyFrom(value.Get),
-                            Result = Hit,
-                        },
-                        fieldMiss, // sliding
-                        fieldMiss, // absolute
-                    },
-                },
-            });
+        var hit = GetFieldsHit(GetFieldHit(value.Get), GetFieldMiss, GetFieldMiss);
         var simpleCacheClient = SetupScenario(hit);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
@@ -134,28 +118,7 @@ public static class Refresh
     [Property(DisplayName = "A hit on a value with no slide does not refresh.")]
     public static void FixedValueDoesNotRefresh_sync(MomentoCacheOptions cacheOpts, NonNull<string> key, NonEmptyArray<byte> value)
     {
-        var fieldMiss = new _DictionaryGetResponsePart
-        {
-            Result = Miss,
-        };
-        var hit = new GetFields.Hit(
-            s_fields,
-            new()
-            {
-                Found = new()
-                {
-                    Items =
-                    {
-                        new _DictionaryGetResponsePart // value
-                        {
-                            CacheBody = ByteString.CopyFrom(value.Get),
-                            Result = Hit,
-                        },
-                        fieldMiss, // sliding
-                        fieldMiss, // absolute
-                    },
-                },
-            });
+        var hit = GetFieldsHit(GetFieldHit(value.Get), GetFieldMiss, GetFieldMiss);
         var simpleCacheClient = SetupScenario(hit);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
@@ -179,4 +142,18 @@ public static class Refresh
             .ReturnsAsync(getFieldsResponse);
         return simpleCacheClient;
     }
+
+    static FieldValue GetFieldHit(ReadOnlySpan<byte> bytes) => new()
+    {
+        CacheBody = ByteString.CopyFrom(bytes),
+        Result = Hit,
+    };
+
+    static GetFields.Hit GetFieldsHit(FieldValue value, FieldValue sliding, FieldValue absolute) => new(s_fields, new()
+    {
+        Found = new()
+        {
+            Items = { value, sliding, absolute },
+        },
+    });
 }
