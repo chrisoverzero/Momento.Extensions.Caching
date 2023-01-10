@@ -25,6 +25,9 @@
     <Using Include="Microsoft.Extensions.Caching.Distributed" />
     <Using Include="Momento.Sdk.Exceptions" />
     <Using Include="Momento.Sdk.Incubating" />
+    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldResponse" Alias="GetField" />
+    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldsResponse" Alias="GetFields" />
+    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryIncrementResponse" Alias="Increment" />
     <Using Include="Momento.Sdk.Responses.CacheDeleteResponse" Alias="Delete" />
     <Using Include="Moq" />
     <Using Include="Xunit" />

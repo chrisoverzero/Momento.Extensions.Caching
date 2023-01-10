@@ -23,7 +23,7 @@ public static class Remove
     [Property(DisplayName = "A success returns silently.")]
     public static async Task SuccessDoesNotThrow(MomentoCacheOptions cacheOpts, NonNull<string> key)
     {
-        var simpleCacheClient = SetupDelete(new Delete.Success());
+        var simpleCacheClient = SetupScenario(new Delete.Success());
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
         var result = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
@@ -35,7 +35,7 @@ public static class Remove
     [Property(DisplayName = "A success returns silently, synchronously.")]
     public static void SuccessDoesNotThrow_sync(MomentoCacheOptions cacheOpts, NonNull<string> key)
     {
-        var simpleCacheClient = SetupDelete(new Delete.Success());
+        var simpleCacheClient = SetupScenario(new Delete.Success());
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
         var result = Record.Exception(() => sut.Remove(key.Get));
@@ -47,36 +47,36 @@ public static class Remove
     [Property(DisplayName = "An error is converted to its wrapped exception.")]
     public static async Task ErrorThrows(MomentoCacheOptions cacheOpts, NonNull<string> key, Delete.Error err)
     {
-        var simpleCacheClient = SetupDelete(err);
+        var simpleCacheClient = SetupScenario(err);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
         var result = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
 
         var se = Assert.IsAssignableFrom<SdkException>(result);
-        Assert.Equal(se, err.InnerException);
+        Assert.Equal(err.InnerException, se);
         simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
     }
 
     [Property(DisplayName = "An error is converted to its wrapped exception, synchronously.")]
     public static void ErrorThrows_sync(MomentoCacheOptions cacheOpts, NonNull<string> key, Delete.Error err)
     {
-        var simpleCacheClient = SetupDelete(err);
+        var simpleCacheClient = SetupScenario(err);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
         var result = Record.Exception(() => sut.Remove(key.Get));
 
         // note(cosborn) The important part of this test is that this _not_ be an `AggregateException`.
         var se = Assert.IsAssignableFrom<SdkException>(result);
-        Assert.Equal(se, err.InnerException);
+        Assert.Equal(err.InnerException, se);
         simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
     }
 
-    static Mock<ISimpleCacheClient> SetupDelete<TDelete>(TDelete response)
+    static Mock<ISimpleCacheClient> SetupScenario<TDelete>(TDelete response)
         where TDelete : Delete
     {
         var simpleCacheClient = new Mock<ISimpleCacheClient>();
         _ = simpleCacheClient
-            .Setup(c => c.DeleteAsync(It.IsNotNull<string>(), It.IsNotNull<string>()))
+            .Setup(static c => c.DeleteAsync(It.IsNotNull<string>(), It.IsNotNull<string>()))
             .ReturnsAsync(response);
         return simpleCacheClient;
     }

@@ -18,6 +18,9 @@ namespace Momento.Extensions.Caching.Unit;
 
 static class Generators
 {
+    static readonly Gen<UnknownException> s_sdkException = Default.GeneratorFor<NonEmptyString>()
+        .Select(msg => new UnknownException(msg.Get));
+
     public static Arbitrary<MomentoCacheOptions> MomentoCacheOptions { get; } = Arb.From(
         from cacheName in Default.GeneratorFor<NonEmptyString>()
         from defaultTtl in Default.GeneratorFor<TimeSpan>().Where(ts => ts != TimeSpan.Zero).Select(ts => ts.Duration())
@@ -27,36 +30,11 @@ static class Generators
             DefaultTtl = defaultTtl,
         });
 
-    public static Arbitrary<SdkException> SdkException { get; } = Default
-        .GeneratorFor<NonEmptyString>()
-        .Select(msg => (SdkException)new ImmaterialException(msg.Get))
+    public static Arbitrary<Delete.Error> CacheDeleteResponseError { get; } = s_sdkException
+        .Select(static ex => new Delete.Error(ex))
         .ToArbitrary();
 
-    public static Arbitrary<Delete.Error> CacheDeleteResponseError { get; } = SdkException.Generator
-        .Select(ex => new Delete.Error(ex))
+    public static Arbitrary<GetFields.Error> CacheDictionaryGetFieldsResponseError { get; } = s_sdkException
+        .Select(static ex => new GetFields.Error(ex))
         .ToArbitrary();
-
-    sealed class ImmaterialException
-        : SdkException
-    {
-        public ImmaterialException()
-            : this(string.Empty)
-        {
-        }
-
-        public ImmaterialException(string message)
-            : this(0, message)
-        {
-        }
-
-        public ImmaterialException(string message, Exception innerException)
-            : this(0, message, e: innerException)
-        {
-        }
-
-        public ImmaterialException(MomentoErrorCode errorCode, string message, MomentoErrorTransportDetails? transportDetails = null, Exception? e = null)
-            : base(errorCode, message, transportDetails, e)
-        {
-        }
-    }
 }
