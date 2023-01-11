@@ -26,9 +26,9 @@ public static class Remove
         var simpleCacheClient = SetupScenario(new Delete.Success());
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
-        var result = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
+        var actual = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
 
-        Assert.Null(result);
+        Assert.Null(actual);
         simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
     }
 
@@ -38,9 +38,9 @@ public static class Remove
         var simpleCacheClient = SetupScenario(new Delete.Success());
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
-        var result = Record.Exception(() => sut.Remove(key.Get));
+        var actual = Record.Exception(() => sut.Remove(key.Get));
 
-        Assert.Null(result);
+        Assert.Null(actual);
         simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
     }
 
@@ -50,9 +50,9 @@ public static class Remove
         var simpleCacheClient = SetupScenario(err);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
-        var result = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
+        var actual = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
 
-        var se = Assert.IsAssignableFrom<SdkException>(result);
+        var se = Assert.IsAssignableFrom<SdkException>(actual);
         Assert.Equal(err.InnerException, se);
         simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
     }
@@ -63,10 +63,10 @@ public static class Remove
         var simpleCacheClient = SetupScenario(err);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
-        var result = Record.Exception(() => sut.Remove(key.Get));
+        var actual = Record.Exception(() => sut.Remove(key.Get));
 
         // note(cosborn) The important part of this test is that this _not_ be an `AggregateException`.
-        var se = Assert.IsAssignableFrom<SdkException>(result);
+        var se = Assert.IsAssignableFrom<SdkException>(actual);
         Assert.Equal(err.InnerException, se);
         simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
     }

@@ -95,10 +95,17 @@ namespace Momento.Extensions.Caching;
 public sealed class MomentoCache
     : IDistributedCache
 {
-    const string ValueKey = "v";
-    const string SlidingExpirationKey = "s";
-    const string AbsoluteExpirationKey = "a";
-    const string RefreshTtlKey = "r";
+    /// <summary>The key to the field in which the cached value is stored.</summary>
+    internal const string ValueKey = "v";
+
+    /// <summary>The key to the field in which the sliding expiration value is stored.</summary>
+    internal const string SlidingExpirationKey = "s";
+
+    /// <summary>The key to the field in which the absolute expiration value is stored.</summary>
+    internal const string AbsoluteExpirationKey = "a";
+
+    /// <summary>The key to the field in which the refresh value is stored.</summary>
+    internal const string RefreshTtlKey = "r";
 
     static readonly ImmutableArray<string> s_fields = ImmutableArray.Create(ValueKey, SlidingExpirationKey, AbsoluteExpirationKey);
     static readonly Encoding s_utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);

@@ -14,27 +14,12 @@
 //   limitations under the License.
 // </copyright>
 
-using Google.Protobuf;
-using static Momento.Protos.CacheClient.ECacheResult;
-using FieldValue = Momento.Protos.CacheClient._DictionaryGetResponse.Types._DictionaryGetResponsePart;
-
 namespace Momento.Extensions.Caching.Unit;
 
 /// <summary>Tests of the Remove operation, async and sync.</summary>
 [Properties(Arbitrary = new[] { typeof(Generators) }, QuietOnSuccess = true)]
 public static class Refresh
 {
-    static readonly ByteString s_valueKey = ByteString.CopyFromUtf8("v");
-    static readonly ByteString s_slidingExpirationKey = ByteString.CopyFromUtf8("s");
-    static readonly ByteString s_absoluteExpirationKey = ByteString.CopyFromUtf8("a");
-
-    static readonly ByteString[] s_fields = { s_valueKey, s_slidingExpirationKey, s_absoluteExpirationKey };
-
-    static FieldValue GetFieldMiss => new()
-    {
-        Result = Miss,
-    };
-
     [Property(DisplayName = "A miss returns silently.")]
     public static async Task MissDoesNotThrow(MomentoCacheOptions cacheOpts, NonNull<string> key)
     {
@@ -71,9 +56,9 @@ public static class Refresh
         var simpleCacheClient = SetupScenario(err);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
-        var result = await Record.ExceptionAsync(() => sut.RefreshAsync(key.Get));
+        var actual = await Record.ExceptionAsync(() => sut.RefreshAsync(key.Get));
 
-        var se = Assert.IsAssignableFrom<SdkException>(result);
+        var se = Assert.IsAssignableFrom<SdkException>(actual);
         Assert.Equal(err.Exception, se);
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
@@ -88,10 +73,10 @@ public static class Refresh
         var simpleCacheClient = SetupScenario(err);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
-        var result = Record.Exception(() => sut.Refresh(key.Get));
+        var actual = Record.Exception(() => sut.Refresh(key.Get));
 
         // note(cosborn) The important part of this test is that this _not_ be an `AggregateException`.
-        var se = Assert.IsAssignableFrom<SdkException>(result);
+        var se = Assert.IsAssignableFrom<SdkException>(actual);
         Assert.Equal(err.Exception, se);
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
@@ -101,13 +86,13 @@ public static class Refresh
     }
 
     [Property(DisplayName = "A hit on a value with no slide does not refresh.")]
-    public static async Task FixedValueDoesNotRefresh(MomentoCacheOptions cacheOpts, NonNull<string> key, NonEmptyArray<byte> value)
+    public static async Task FixedValueDoesNotRefresh(MomentoCacheOptions cacheOpts, NonNull<string> key, FixedValueGetFieldsHit hit)
     {
-        var hit = GetFieldsHit(GetFieldHit(value.Get), GetFieldMiss, GetFieldMiss);
         var simpleCacheClient = SetupScenario(hit);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
         await sut.RefreshAsync(key.Get);
+
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
@@ -115,14 +100,14 @@ public static class Refresh
         simpleCacheClient.VerifyNoOtherCalls();
     }
 
-    [Property(DisplayName = "A hit on a value with no slide does not refresh.")]
-    public static void FixedValueDoesNotRefresh_sync(MomentoCacheOptions cacheOpts, NonNull<string> key, NonEmptyArray<byte> value)
+    [Property(DisplayName = "A hit on a value with no slide does not refresh, synchronously.")]
+    public static void FixedValueDoesNotRefresh_sync(MomentoCacheOptions cacheOpts, NonNull<string> key, FixedValueGetFieldsHit hit)
     {
-        var hit = GetFieldsHit(GetFieldHit(value.Get), GetFieldMiss, GetFieldMiss);
         var simpleCacheClient = SetupScenario(hit);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
         sut.Refresh(key.Get);
+
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
@@ -130,7 +115,59 @@ public static class Refresh
         simpleCacheClient.VerifyNoOtherCalls();
     }
 
-    static Mock<ISimpleCacheClient> SetupScenario<TGetFields>(TGetFields getFieldsResponse)
+    [Property(DisplayName = "An error on updating the TTL throws.")]
+    public static async Task IncrementErrorThrows(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        SlidingValueGetFieldsHit hit,
+        Increment.Error err)
+    {
+        var simpleCacheClient = SetupScenario(hit, err);
+        IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
+
+        var actual = await Record.ExceptionAsync(() => sut.RefreshAsync(key.Get));
+
+        var se = Assert.IsAssignableFrom<SdkException>(actual);
+        Assert.Equal(se, err.Exception);
+        simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
+            cacheOpts.CacheName,
+            key.Get,
+            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
+        simpleCacheClient.Verify(c => c.DictionaryIncrementAsync(
+            cacheOpts.CacheName,
+            key.Get,
+            RefreshTtlKey,
+            It.IsAny<long>(),
+            It.IsAny<CollectionTtl>()));
+    }
+
+    [Property(DisplayName = "An error on updating the TTL throws, synchronously.")]
+    public static void IncrementErrorThrows_sync(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        SlidingValueGetFieldsHit hit,
+        Increment.Error err)
+    {
+        var simpleCacheClient = SetupScenario(hit, err);
+        IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
+
+        var actual = Record.Exception(() => sut.Refresh(key.Get));
+
+        var se = Assert.IsAssignableFrom<SdkException>(actual);
+        Assert.Equal(se, err.Exception);
+        simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
+            cacheOpts.CacheName,
+            key.Get,
+            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
+        simpleCacheClient.Verify(c => c.DictionaryIncrementAsync(
+            cacheOpts.CacheName,
+            key.Get,
+            RefreshTtlKey,
+            It.IsAny<long>(),
+            It.IsAny<CollectionTtl>()));
+    }
+
+    static Mock<ISimpleCacheClient> SetupScenario<TGetFields>(TGetFields getFieldsResponse, Increment? incrementResponse = null)
         where TGetFields : GetFields
     {
         var simpleCacheClient = new Mock<ISimpleCacheClient>();
@@ -140,20 +177,18 @@ public static class Refresh
                 It.IsNotNull<string>(),
                 It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))))
             .ReturnsAsync(getFieldsResponse);
+        if (incrementResponse is { } ir)
+        {
+            _ = simpleCacheClient
+                .Setup(static c => c.DictionaryIncrementAsync(
+                    It.IsNotNull<string>(),
+                    It.IsNotNull<string>(),
+                    It.IsNotNull<string>(),
+                    It.IsAny<long>(),
+                    It.IsAny<CollectionTtl>()))
+                .ReturnsAsync(ir);
+        }
+
         return simpleCacheClient;
     }
-
-    static FieldValue GetFieldHit(ReadOnlySpan<byte> bytes) => new()
-    {
-        CacheBody = ByteString.CopyFrom(bytes),
-        Result = Hit,
-    };
-
-    static GetFields.Hit GetFieldsHit(FieldValue value, FieldValue sliding, FieldValue absolute) => new(s_fields, new()
-    {
-        Found = new()
-        {
-            Items = { value, sliding, absolute },
-        },
-    });
 }
