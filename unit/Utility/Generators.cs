@@ -57,6 +57,10 @@ static class Generators
             Result = Hit,
         };
 
+    public static Arbitrary<Duration> Ttl { get; } = s_ttl
+        .Select(t => new Duration(t))
+        .ToArbitrary();
+
     public static Arbitrary<MomentoCacheOptions> MomentoCacheOptions { get; } = Arb.From(
         from cacheName in Default.GeneratorFor<NonEmptyString>()
         from defaultTtl in s_ttl
@@ -76,6 +80,10 @@ static class Generators
 
     public static Arbitrary<Increment.Error> CacheDictionaryIncrementResponse { get; } = s_sdkException
         .Select(static ex => new Increment.Error(ex))
+        .ToArbitrary();
+
+    public static Arbitrary<SetFields.Error> CacheDictionarySetFieldsResponse { get; } = s_sdkException
+        .Select(static ex => new SetFields.Error(ex))
         .ToArbitrary();
 
     public static Arbitrary<FixedValueGetFieldsHit> FixedValueGetFieldsHit { get; } = Arb.From(

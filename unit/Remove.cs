@@ -21,26 +21,30 @@ namespace Momento.Extensions.Caching.Unit;
 public static class Remove
 {
     [Property(DisplayName = "A success returns silently.")]
-    public static async Task SuccessDoesNotThrow(MomentoCacheOptions cacheOpts, NonNull<string> key)
+    public static async Task SuccessSilent(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        Delete.Success success)
     {
-        var simpleCacheClient = SetupScenario(new Delete.Success());
+        var simpleCacheClient = SetupScenario(success);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
-        var actual = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
+        await sut.RemoveAsync(key.Get);
 
-        Assert.Null(actual);
         simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
     }
 
     [Property(DisplayName = "A success returns silently, synchronously.")]
-    public static void SuccessDoesNotThrow_sync(MomentoCacheOptions cacheOpts, NonNull<string> key)
+    public static void SuccessSilent_sync(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        Delete.Success success)
     {
-        var simpleCacheClient = SetupScenario(new Delete.Success());
+        var simpleCacheClient = SetupScenario(success);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
-        var actual = Record.Exception(() => sut.Remove(key.Get));
+        sut.Remove(key.Get);
 
-        Assert.Null(actual);
         simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
     }
 

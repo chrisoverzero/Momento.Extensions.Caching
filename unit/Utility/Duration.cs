@@ -1,4 +1,4 @@
-// <copyright file="Pass.cs" company="Cimpress, Inc.">
+// <copyright file="Duration.cs" company="Cimpress, Inc.">
 //   Copyright 2023 Cimpress, Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License") –
@@ -16,12 +16,11 @@
 
 namespace Momento.Extensions.Caching.Unit;
 
-/// <summary>A test which will make `dotnet test` report a success.</summary>
-public static class Pass
+/// <summary>An explicitly positive span of time.</summary>
+/// <param name="Value">The wrapped value.</param>
+public readonly record struct Duration(TimeSpan Value)
 {
-    // todo(cosborn) Maybe write some real tests?
-    [Fact]
-    public static void Test()
-    {
-    }
+    public static implicit operator TimeSpan(Duration duration) => duration.ToTimeSpan();
+
+    public TimeSpan ToTimeSpan() => Value;
 }

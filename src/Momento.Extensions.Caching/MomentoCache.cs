@@ -217,7 +217,7 @@ public sealed class MomentoCache
                  * This is _not necessarily_ the value of `_cacheOpts.DefaultTtl`, since an instance
                  * of a custom implementation of `ISimpleCacheClient` could have been resolved from DI
                  * which ignores this value. (Untidy, but not impossible.) Nicely,
-                 * `CollectionTtl.FromCacheTtl()` (or `default(CollectionTtl)`) means exactly this.
+                 * `CollectionTtl.FromCacheTtl()` means exactly this.
                  */
                 ttl = CollectionTtl.FromCacheTtl();
                 break;

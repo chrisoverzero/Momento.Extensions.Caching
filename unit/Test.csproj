@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net6.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -23,15 +23,20 @@
     <Using Include="FsCheck.Fluent.ArbMap" Static="true" />
     <Using Include="FsCheck.Xunit" />
     <Using Include="Microsoft.Extensions.Caching.Distributed" />
+    <Using Include="Microsoft.Extensions.Internal" />
     <Using Include="Momento.Extensions.Caching.MomentoCache" Static="true" />
     <Using Include="Momento.Sdk.Exceptions" />
     <Using Include="Momento.Sdk.Incubating" />
     <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldResponse" Alias="GetField" />
     <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldsResponse" Alias="GetFields" />
     <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryIncrementResponse" Alias="Increment" />
+    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionarySetFieldsResponse" Alias="SetFields" />
     <Using Include="Momento.Sdk.Incubating.Requests" />
     <Using Include="Momento.Sdk.Responses.CacheDeleteResponse" Alias="Delete" />
     <Using Include="Moq" />
+    <Using
+      Include="System.Collections.Generic.IEnumerable&lt;System.Collections.Generic.KeyValuePair&lt;string, byte[]&gt;&gt;"
+      Alias="Items" />
     <Using Include="System.Globalization.CultureInfo" Static="true" />
     <Using Include="Xunit" />
   </ItemGroup>

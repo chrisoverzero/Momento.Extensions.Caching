@@ -21,9 +21,12 @@ namespace Momento.Extensions.Caching.Unit;
 public static class Refresh
 {
     [Property(DisplayName = "A miss returns silently.")]
-    public static async Task MissDoesNotThrow(MomentoCacheOptions cacheOpts, NonNull<string> key)
+    public static async Task MissSilent(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        GetFields.Miss miss)
     {
-        var simpleCacheClient = SetupScenario(new GetFields.Miss());
+        var simpleCacheClient = SetupScenario(miss);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
         await sut.RefreshAsync(key.Get);
@@ -31,14 +34,24 @@ public static class Refresh
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
-            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
-        simpleCacheClient.VerifyNoOtherCalls();
+            It.IsNotNull<IEnumerable<string>>()));
+        simpleCacheClient.Verify(
+            static c => c.DictionaryIncrementAsync(
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsAny<long>(),
+                It.IsAny<CollectionTtl>()),
+            Times.Never);
     }
 
     [Property(DisplayName = "A miss returns silently, synchronously.")]
-    public static void MissDoesNotThrow_sync(MomentoCacheOptions cacheOpts, NonNull<string> key)
+    public static void MissSilent_sync(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        GetFields.Miss miss)
     {
-        var simpleCacheClient = SetupScenario(new GetFields.Miss());
+        var simpleCacheClient = SetupScenario(miss);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
 
         sut.Refresh(key.Get);
@@ -46,12 +59,22 @@ public static class Refresh
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
-            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
-        simpleCacheClient.VerifyNoOtherCalls();
+            It.IsNotNull<IEnumerable<string>>()));
+        simpleCacheClient.Verify(
+            static c => c.DictionaryIncrementAsync(
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsAny<long>(),
+                It.IsAny<CollectionTtl>()),
+            Times.Never);
     }
 
     [Property(DisplayName = "An error initially getting the fields throws.")]
-    public static async Task GetFieldsErrorThrows(MomentoCacheOptions cacheOpts, NonNull<string> key, GetFields.Error err)
+    public static async Task GetFieldsErrorThrows(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        GetFields.Error err)
     {
         var simpleCacheClient = SetupScenario(err);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
@@ -63,12 +86,22 @@ public static class Refresh
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
-            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
-        simpleCacheClient.VerifyNoOtherCalls();
+            It.IsNotNull<IEnumerable<string>>()));
+        simpleCacheClient.Verify(
+            static c => c.DictionaryIncrementAsync(
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsAny<long>(),
+                It.IsAny<CollectionTtl>()),
+            Times.Never);
     }
 
     [Property(DisplayName = "An error initially getting the fields throws, synchronously.")]
-    public static void GetFieldsErrorThrows_sync(MomentoCacheOptions cacheOpts, NonNull<string> key, GetFields.Error err)
+    public static void GetFieldsErrorThrows_sync(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        GetFields.Error err)
     {
         var simpleCacheClient = SetupScenario(err);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
@@ -81,12 +114,22 @@ public static class Refresh
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
-            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
-        simpleCacheClient.VerifyNoOtherCalls();
+            It.IsNotNull<IEnumerable<string>>()));
+        simpleCacheClient.Verify(
+            static c => c.DictionaryIncrementAsync(
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsAny<long>(),
+                It.IsAny<CollectionTtl>()),
+            Times.Never);
     }
 
     [Property(DisplayName = "A hit on a value with no slide does not refresh.")]
-    public static async Task FixedValueDoesNotRefresh(MomentoCacheOptions cacheOpts, NonNull<string> key, FixedValueGetFieldsHit hit)
+    public static async Task FixedValueDoesNotRefresh(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        FixedValueGetFieldsHit hit)
     {
         var simpleCacheClient = SetupScenario(hit);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
@@ -96,12 +139,22 @@ public static class Refresh
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
-            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
-        simpleCacheClient.VerifyNoOtherCalls();
+            It.IsNotNull<IEnumerable<string>>()));
+        simpleCacheClient.Verify(
+            static c => c.DictionaryIncrementAsync(
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsAny<long>(),
+                It.IsAny<CollectionTtl>()),
+            Times.Never);
     }
 
     [Property(DisplayName = "A hit on a value with no slide does not refresh, synchronously.")]
-    public static void FixedValueDoesNotRefresh_sync(MomentoCacheOptions cacheOpts, NonNull<string> key, FixedValueGetFieldsHit hit)
+    public static void FixedValueDoesNotRefresh_sync(
+        MomentoCacheOptions cacheOpts,
+        NonNull<string> key,
+        FixedValueGetFieldsHit hit)
     {
         var simpleCacheClient = SetupScenario(hit);
         IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
@@ -111,8 +164,15 @@ public static class Refresh
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
-            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
-        simpleCacheClient.VerifyNoOtherCalls();
+            It.IsNotNull<IEnumerable<string>>()));
+        simpleCacheClient.Verify(
+            static c => c.DictionaryIncrementAsync(
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsAny<long>(),
+                It.IsAny<CollectionTtl>()),
+            Times.Never);
     }
 
     [Property(DisplayName = "An error on updating the TTL throws.")]
@@ -132,7 +192,7 @@ public static class Refresh
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
-            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
+            It.IsNotNull<IEnumerable<string>>()));
         simpleCacheClient.Verify(c => c.DictionaryIncrementAsync(
             cacheOpts.CacheName,
             key.Get,
@@ -153,12 +213,13 @@ public static class Refresh
 
         var actual = Record.Exception(() => sut.Refresh(key.Get));
 
+        // note(cosborn) The important part of this test is that this _not_ be an `AggregateException`.
         var se = Assert.IsAssignableFrom<SdkException>(actual);
         Assert.Equal(se, err.Exception);
         simpleCacheClient.Verify(c => c.DictionaryGetFieldsAsync(
             cacheOpts.CacheName,
             key.Get,
-            It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))));
+            It.IsNotNull<IEnumerable<string>>()));
         simpleCacheClient.Verify(c => c.DictionaryIncrementAsync(
             cacheOpts.CacheName,
             key.Get,
@@ -167,7 +228,9 @@ public static class Refresh
             It.IsAny<CollectionTtl>()));
     }
 
-    static Mock<ISimpleCacheClient> SetupScenario<TGetFields>(TGetFields getFieldsResponse, Increment? incrementResponse = null)
+    static Mock<ISimpleCacheClient> SetupScenario<TGetFields>(
+        TGetFields getFieldsResponse, Increment?
+        incrementResponse = null)
         where TGetFields : GetFields
     {
         var simpleCacheClient = new Mock<ISimpleCacheClient>();
@@ -175,7 +238,7 @@ public static class Refresh
             .Setup(static c => c.DictionaryGetFieldsAsync(
                 It.IsNotNull<string>(),
                 It.IsNotNull<string>(),
-                It.Is<IEnumerable<string>>(static fs => fs.All(static f => f != null))))
+                It.IsNotNull<IEnumerable<string>>()))
             .ReturnsAsync(getFieldsResponse);
         if (incrementResponse is { } ir)
         {
