@@ -228,9 +228,7 @@ public static class Refresh
             It.IsAny<CollectionTtl>()));
     }
 
-    static Mock<ISimpleCacheClient> SetupScenario<TGetFields>(
-        TGetFields getFieldsResponse, Increment?
-        incrementResponse = null)
+    static Mock<ISimpleCacheClient> SetupScenario<TGetFields>(TGetFields getFieldsResponse)
         where TGetFields : GetFields
     {
         var simpleCacheClient = new Mock<ISimpleCacheClient>();
@@ -240,17 +238,33 @@ public static class Refresh
                 It.IsNotNull<string>(),
                 It.IsNotNull<IEnumerable<string>>()))
             .ReturnsAsync(getFieldsResponse);
-        if (incrementResponse is { } ir)
-        {
-            _ = simpleCacheClient
-                .Setup(static c => c.DictionaryIncrementAsync(
-                    It.IsNotNull<string>(),
-                    It.IsNotNull<string>(),
-                    It.IsNotNull<string>(),
-                    It.IsAny<long>(),
-                    It.IsAny<CollectionTtl>()))
-                .ReturnsAsync(ir);
-        }
+        return simpleCacheClient;
+    }
+
+    static Mock<ISimpleCacheClient> SetupScenario<TGetFields, TIncrement>(
+        TGetFields getFieldsResponse,
+        TIncrement incrementResponse)
+        where TGetFields : GetFields
+        where TIncrement : Increment
+    {
+        var simpleCacheClient = new Mock<ISimpleCacheClient>();
+        var sequence = new MockSequence();
+        _ = simpleCacheClient
+            .InSequence(sequence)
+            .Setup(static c => c.DictionaryGetFieldsAsync(
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsNotNull<IEnumerable<string>>()))
+            .ReturnsAsync(getFieldsResponse);
+        _ = simpleCacheClient
+            .InSequence(sequence)
+            .Setup(static c => c.DictionaryIncrementAsync(
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsNotNull<string>(),
+                It.IsAny<long>(),
+                It.IsAny<CollectionTtl>()))
+            .ReturnsAsync(incrementResponse);
 
         return simpleCacheClient;
     }
