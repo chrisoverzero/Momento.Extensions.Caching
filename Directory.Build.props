@@ -1,21 +1,23 @@
 <Project>
   <PropertyGroup>
-    <TargetFrameworks>net6.0;netstandard2.1</TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
+    <Copyright>©Cimpress 2023</Copyright>
     <NeutralLanguage>en-US</NeutralLanguage>
     <Nullable>enable</Nullable>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnforceCodeStyleSeverityInBuild>true</EnforceCodeStyleSeverityInBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisMode>all</AnalysisMode>
-    <DebugType>portable</DebugType>
+    <AnalysisLevel>preview</AnalysisLevel>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ImplicitUsings>true</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>preview</LangVersion>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Roslynator.Analyzers" Version="4.2.0" PrivateAssets="all" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.435" PrivateAssets="all" />
 
+  <ItemGroup>
     <Using Include="System.Diagnostics.CodeAnalysis" />
 
     <AssemblyAttribute Include="CLSCompliantAttribute">

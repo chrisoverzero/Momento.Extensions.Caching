@@ -1,38 +1,40 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="6.0.0"/>
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Momento.Sdk" />
 
-    <ProjectReference Include="../../../client-sdk-dotnet-incubating/src/Momento.Sdk.Incubating/Momento.Sdk.Incubating.csproj" />
-
+    <Using Include="System.Collections.Frozen" />
+    <Using Include="System.Collections.Immutable" />
+    <Using Include="System.ComponentModel.DataAnnotations" />
+    <Using Include="System.Runtime.CompilerServices" />
+    <Using Include="System.Text" />
+    <Using Include="Google.Protobuf" />
+    <Using Include="Google.Protobuf.WellKnownTypes" />
     <Using Include="Microsoft.Extensions.Caching.Distributed" />
     <Using Include="Microsoft.Extensions.DependencyInjection" />
     <Using Include="Microsoft.Extensions.DependencyInjection.Extensions" />
     <Using Include="Microsoft.Extensions.Internal" />
     <Using Include="Microsoft.Extensions.Options" />
+    <Using Include="Momento.Sdk" />
     <Using Include="Momento.Sdk.Auth" />
     <Using Include="Momento.Sdk.Config" />
-    <Using Include="Momento.Sdk.Incubating" />
-    <Using Include="Momento.Sdk.Incubating.Requests" />
-    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldResponse" Alias="GetField" />
-    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldsResponse" Alias="GetFields" />
-    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryIncrementResponse" Alias="Increment" />
-    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionarySetFieldsResponse" Alias="SetFields" />
-    <Using Include="Momento.Sdk.Responses.CacheDeleteResponse" Alias="Delete" />
-    <Using Include="System.Collections.Immutable" />
-    <Using Include="System.ComponentModel.DataAnnotations" />
-    <Using Include="System.Globalization.CultureInfo" Static="true" />
-    <Using Include="System.Runtime.CompilerServices" />
-    <Using Include="System.Text" />
+    <Using Include="Momento.Sdk.Requests" />
+    <Using Static="true" Include="System.Globalization.CultureInfo" />
+    <Using Alias="Delete" Include="Momento.Sdk.Responses.CacheDeleteResponse" />
+    <Using Alias="GetField" Include="Momento.Sdk.Responses.CacheDictionaryGetFieldResponse" />
+    <Using Alias="GetFields" Include="Momento.Sdk.Responses.CacheDictionaryGetFieldsResponse" />
+    <Using Alias="SetFields" Include="Momento.Sdk.Responses.CacheDictionarySetFieldsResponse" />
+    <Using Alias="UpdateTtl" Include="Momento.Sdk.Responses.CacheUpdateTtlResponse" />
 
     <AssemblyAttribute Include="InternalsVisibleToAttribute">
       <_Parameter1>Test</_Parameter1>
     </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.1' ">
-    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
   </ItemGroup>
 
 </Project>

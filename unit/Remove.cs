@@ -1,87 +1,125 @@
 // <copyright file="Remove.cs" company="Cimpress, Inc.">
-//   Copyright 2023 Cimpress, Inc.
+// Copyright 2023 Cimpress, Inc.
 //
-//   Licensed under the Apache License, Version 2.0 (the "License") –
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License") –
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 //
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 // </copyright>
 
 namespace Momento.Extensions.Caching.Unit;
 
 /// <summary>Tests of the Remove operation, async and sync.</summary>
-[Properties(Arbitrary = new[] { typeof(Generators) }, QuietOnSuccess = true)]
+[Properties(Arbitrary = new[] { typeof(Generators) }, MaxTest = 1024, QuietOnSuccess = true)]
 public static class Remove
 {
-    [Property(DisplayName = "A success returns silently.")]
-    public static async Task SuccessSilent(
-        MomentoCacheOptions cacheOpts,
+    [Property(DisplayName = "Any removal attempts to delete the value.")]
+    public static async Task DeleteAsync(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
-        Delete.Success success)
+        TimeProvider time)
     {
-        var simpleCacheClient = SetupScenario(success);
-        IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
+        var cacheClient = Substitute.For<ICacheClient>();
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
         await sut.RemoveAsync(key.Get);
 
-        simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
+        _ = await cacheClient.Received().DeleteAsync(cacheOpts.Value.CacheName, key.Get);
     }
 
-    [Property(DisplayName = "A success returns silently, synchronously.")]
-    public static void SuccessSilent_sync(
-        MomentoCacheOptions cacheOpts,
+    [Property(DisplayName = "Any removal attempts to delete the value, synchronously.")]
+    public static void Delete(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
-        Delete.Success success)
+        TimeProvider time)
     {
-        var simpleCacheClient = SetupScenario(success);
-        IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
+        var cacheClient = Substitute.For<ICacheClient>();
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+
+        _ = Record.Exception(() => sut.Remove(key.Get));
+
+        _ = cacheClient.Received().DeleteAsync(cacheOpts.Value.CacheName, key.Get);
+    }
+
+    [Property(DisplayName = "Any removal does not attempt to update any item's TTL.")]
+    public static async Task NoUpdateAsync(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        TimeProvider time)
+    {
+        var cacheClient = Substitute.For<ICacheClient>();
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+
+        await sut.RemoveAsync(key.Get);
+
+        _ = await cacheClient.DidNotReceive().UpdateTtlAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<TimeSpan>());
+    }
+
+    [Property(DisplayName = "Any removal does not attempt to update any item's TTL, synchronously.")]
+    public static void NoUpdate(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        TimeProvider time)
+    {
+        var cacheClient = Substitute.For<ICacheClient>();
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
         sut.Remove(key.Get);
 
-        simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
+        _ = cacheClient.DidNotReceive().UpdateTtlAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<TimeSpan>());
     }
 
     [Property(DisplayName = "An error is converted to its wrapped exception.")]
-    public static async Task ErrorThrows(MomentoCacheOptions cacheOpts, NonNull<string> key, Delete.Error err)
+    public static async Task ErrorThrowsAsync(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        TimeProvider time,
+        Delete.Error error)
     {
-        var simpleCacheClient = SetupScenario(err);
-        IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
+        var cacheClient = SetUpScenario(error);
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
         var actual = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
 
         var se = Assert.IsAssignableFrom<SdkException>(actual);
-        Assert.Equal(err.InnerException, se);
-        simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
+        Assert.Equal(error.InnerException, se);
     }
 
     [Property(DisplayName = "An error is converted to its wrapped exception, synchronously.")]
-    public static void ErrorThrows_sync(MomentoCacheOptions cacheOpts, NonNull<string> key, Delete.Error err)
+    public static void ErrorThrows(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        TimeProvider time,
+        Delete.Error error)
     {
-        var simpleCacheClient = SetupScenario(err);
-        IDistributedCache sut = new MomentoCache(simpleCacheClient.Object, cacheOpts);
+        var cacheClient = SetUpScenario(error);
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
         var actual = Record.Exception(() => sut.Remove(key.Get));
 
         // note(cosborn) The important part of this test is that this _not_ be an `AggregateException`.
         var se = Assert.IsAssignableFrom<SdkException>(actual);
-        Assert.Equal(err.InnerException, se);
-        simpleCacheClient.Verify(c => c.DeleteAsync(cacheOpts.CacheName, key.Get));
+        Assert.Equal(error.InnerException, se);
     }
 
-    static Mock<ISimpleCacheClient> SetupScenario<TDelete>(TDelete response)
+    static ICacheClient SetUpScenario<TDelete>(TDelete response)
         where TDelete : Delete
     {
-        var simpleCacheClient = new Mock<ISimpleCacheClient>();
-        _ = simpleCacheClient
-            .Setup(static c => c.DeleteAsync(It.IsNotNull<string>(), It.IsNotNull<string>()))
-            .ReturnsAsync(response);
-        return simpleCacheClient;
+        var cacheClient = Substitute.For<ICacheClient>();
+        _ = cacheClient.DeleteAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(response);
+        return cacheClient;
     }
 }

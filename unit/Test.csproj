@@ -1,44 +1,48 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
-
-    <PackageReference Include="FsCheck.Xunit" Version="3.0.0-beta2" />
-    <PackageReference Include="Moq" Version="4.18.4" />
-    <PackageReference Include="xunit" Version="2.4.2" />
-
-    <PackageReference Include="coverlet.collector" Version="3.2.0" PrivateAssets="All" />
-    <PackageReference Include="JunitXml.TestLogger" Version="3.0.114" PrivateAssets="All" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5" PrivateAssets="all" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="FsCheck.Xunit" />
+    <PackageReference Include="JunitXml.TestLogger" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
 
     <ProjectReference Include="..\src\Momento.Extensions.Caching\Momento.Extensions.Caching.csproj" />
 
+    <Using Include="System.Collections.Immutable" />
     <Using Include="FsCheck" />
     <Using Include="FsCheck.Fluent" />
-    <Using Include="FsCheck.Fluent.ArbMap" Static="true" />
     <Using Include="FsCheck.Xunit" />
+    <Using Include="Google.Protobuf" />
+    <Using Include="Google.Protobuf.WellKnownTypes" />
     <Using Include="Microsoft.Extensions.Caching.Distributed" />
-    <Using Include="Microsoft.Extensions.Internal" />
-    <Using Include="Momento.Extensions.Caching.MomentoCache" Static="true" />
+    <Using Include="Microsoft.Extensions.Options" />
+    <Using Include="Momento.Protos.CacheClient" />
+    <Using Include="Momento.Sdk" />
     <Using Include="Momento.Sdk.Exceptions" />
-    <Using Include="Momento.Sdk.Incubating" />
-    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldResponse" Alias="GetField" />
-    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryGetFieldsResponse" Alias="GetFields" />
-    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionaryIncrementResponse" Alias="Increment" />
-    <Using Include="Momento.Sdk.Incubating.Responses.CacheDictionarySetFieldsResponse" Alias="SetFields" />
-    <Using Include="Momento.Sdk.Incubating.Requests" />
-    <Using Include="Momento.Sdk.Responses.CacheDeleteResponse" Alias="Delete" />
-    <Using Include="Moq" />
-    <Using
-      Include="System.Collections.Generic.IEnumerable&lt;System.Collections.Generic.KeyValuePair&lt;string, byte[]&gt;&gt;"
-      Alias="Items" />
-    <Using Include="System.Globalization.CultureInfo" Static="true" />
+    <Using Include="Momento.Sdk.Requests" />
+    <Using Include="Momento.Sdk.Responses" />
+    <Using Include="NSubstitute" />
     <Using Include="Xunit" />
+    <Using Static="true" Include="System.Globalization.CultureInfo" />
+    <Using Static="true" Include="FsCheck.Fluent.ArbMap" />
+    <Using Static="true" Include="Momento.Extensions.Caching.MomentoCache" />
+    <Using Static="true" Include="Momento.Protos.CacheClient.ECacheResult" />
+    <Using
+      Alias="Items"
+      Include="System.Collections.Generic.IEnumerable&lt;System.Collections.Generic.KeyValuePair&lt;string, byte[]&gt;&gt;" />
+    <Using Alias="FieldValue" Include="Momento.Protos.CacheClient._DictionaryGetResponse.Types._DictionaryGetResponsePart" />
+    <Using Alias="Delete" Include="Momento.Sdk.Responses.CacheDeleteResponse" />
+    <Using Alias="GetField" Include="Momento.Sdk.Responses.CacheDictionaryGetFieldResponse" />
+    <Using Alias="GetFields" Include="Momento.Sdk.Responses.CacheDictionaryGetFieldsResponse" />
+    <Using Alias="SetFields" Include="Momento.Sdk.Responses.CacheDictionarySetFieldsResponse" />
+    <Using Alias="UpdateTtl" Include="Momento.Sdk.Responses.CacheUpdateTtlResponse" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-// <copyright file="Refresh.cs" company="Cimpress, Inc.">
+// <copyright file="Get.cs" company="Cimpress, Inc.">
 // Copyright 2023 Cimpress, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License") –
@@ -16,12 +16,47 @@
 
 namespace Momento.Extensions.Caching.Unit;
 
-/// <summary>Tests of the Remove operation, async and sync.</summary>
+/// <summary>Tests of the Get operation, async and sync.</summary>
 [Properties(Arbitrary = new[] { typeof(Generators) }, MaxTest = 1024, QuietOnSuccess = true)]
-public static class Refresh
+[Trait("Category", "Wowee")]
+public static class Get
 {
-    [Property(DisplayName = "A miss does not throw.")]
-    public static async Task MissNoThrowAsync(
+    [Property(DisplayName = "Any get actually attempts to get the value.")]
+    public static async Task GetValueAsync(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        TimeProvider time)
+    {
+        var cacheClient = Substitute.For<ICacheClient>();
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+
+        _ = await sut.GetAsync(key.Get);
+
+        _ = await cacheClient.Received().DictionaryGetFieldsAsync(
+            cacheOpts.Value.CacheName,
+            key.Get,
+            Arg.Any<IEnumerable<string>>());
+    }
+
+    [Property(DisplayName = "Any get actually attempts to get the value, asynchronously.")]
+    public static void GetValue(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        TimeProvider time)
+    {
+        var cacheClient = Substitute.For<ICacheClient>();
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+
+        _ = sut.Get(key.Get);
+
+        _ = cacheClient.Received().DictionaryGetFieldsAsync(
+            cacheOpts.Value.CacheName,
+            key.Get,
+            Arg.Any<IEnumerable<string>>());
+    }
+
+    [Property(DisplayName = "A miss returns null.")]
+    public static async Task MissNullAsync(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
@@ -30,13 +65,13 @@ public static class Refresh
         var cacheClient = SetUpScenario(miss);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        var actual = await Record.ExceptionAsync(() => sut.RefreshAsync(key.Get));
+        var actual = await sut.GetAsync(key.Get);
 
         Assert.Null(actual);
     }
 
-    [Property(DisplayName = "A miss does not throw, synchronously.")]
-    public static void MissNoThrow(
+    [Property(DisplayName = "A miss returns null, synchronously.")]
+    public static void MissNull(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
@@ -45,7 +80,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(miss);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        var actual = Record.Exception(() => sut.Refresh(key.Get));
+        var actual = sut.Get(key.Get);
 
         Assert.Null(actual);
     }
@@ -60,7 +95,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(miss);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        await sut.RefreshAsync(key.Get);
+        _ = await sut.GetAsync(key.Get);
 
         _ = await cacheClient.DidNotReceive().UpdateTtlAsync(
             Arg.Any<string>(),
@@ -78,7 +113,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(miss);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        sut.Refresh(key.Get);
+        _ = sut.Get(key.Get);
 
         _ = cacheClient.DidNotReceive().UpdateTtlAsync(
             Arg.Any<string>(),
@@ -87,7 +122,7 @@ public static class Refresh
     }
 
     [Property(DisplayName = "An error initially getting the value throws.")]
-    public static async Task GetErrorThrowsAsync(
+    public static async Task InitialErrorThrowsAsync(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
@@ -96,14 +131,14 @@ public static class Refresh
         var cacheClient = SetUpScenario(err);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        var actual = await Record.ExceptionAsync(() => sut.RefreshAsync(key.Get));
+        var actual = await Record.ExceptionAsync(() => sut.GetAsync(key.Get));
 
         var se = Assert.IsAssignableFrom<SdkException>(actual);
         Assert.Equal(err.InnerException, se);
     }
 
     [Property(DisplayName = "An error initially getting the value throws, synchronously.")]
-    public static void GetErrorThrows(
+    public static void InitialErrorThrows(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
@@ -112,24 +147,24 @@ public static class Refresh
         var cacheClient = SetUpScenario(err);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        var actual = Record.Exception(() => sut.Refresh(key.Get));
+        var actual = Record.Exception(() => sut.Get(key.Get));
 
         // note(cosborn) The important part of this test is that this _not_ be an `AggregateException`.
         var se = Assert.IsAssignableFrom<SdkException>(actual);
         Assert.Equal(err.InnerException, se);
     }
 
-    [Property(DisplayName = "An error initially getting the value does not attempt to update an item's TTL.")]
-    public static async Task GetErrorNoUpdateAsync(
+    [Property(DisplayName = "An error initially getting the value does not attempt to update any item's TTL.")]
+    public static async Task InitialErrorNoUpdateAsync(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
-        GetFields.Error err)
+        GetFields.Error error)
     {
-        var cacheClient = SetUpScenario(err);
+        var cacheClient = SetUpScenario(error);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        _ = await Record.ExceptionAsync(() => sut.RefreshAsync(key.Get));
+        _ = await Record.ExceptionAsync(() => sut.GetAsync(key.Get));
 
         _ = await cacheClient.DidNotReceive().UpdateTtlAsync(
             Arg.Any<string>(),
@@ -137,17 +172,17 @@ public static class Refresh
             Arg.Any<TimeSpan>());
     }
 
-    [Property(DisplayName = "An error initially getting the value does not attempt to update an item's TTL, synchronously.")]
-    public static void GetNoUpdateThrows(
+    [Property(DisplayName = "An error initially getting the value does not attempt to update any item's TTL, synchronously.")]
+    public static void InitialErrorNoUpdate(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
-        GetFields.Error err)
+        GetFields.Error error)
     {
-        var cacheClient = SetUpScenario(err);
+        var cacheClient = SetUpScenario(error);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        _ = Record.Exception(() => sut.Refresh(key.Get));
+        _ = Record.Exception(() => sut.Get(key.Get));
 
         _ = cacheClient.DidNotReceive().UpdateTtlAsync(
             Arg.Any<string>(),
@@ -155,10 +190,8 @@ public static class Refresh
             Arg.Any<TimeSpan>());
     }
 
-    [Property(
-        Arbitrary = [typeof(Generators.Fixed)],
-        DisplayName = "A hit with any fixed expiration does not attempt to update the item's TTL.")]
-    public static async Task FixedValueDoesNotRefreshAsync(
+    [Property(DisplayName = "A hit of any kind returns the cached value.")]
+    public static async Task HitValueAsync(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
@@ -167,7 +200,43 @@ public static class Refresh
         var cacheClient = SetUpScenario(hit);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        await sut.RefreshAsync(key.Get);
+        var actual = await sut.GetAsync(key.Get);
+
+        // note(cosborn) `null` is the indicator of a miss, so assert it especially.
+        Assert.NotNull(actual);
+        Assert.Equal(hit.ValueDictionaryStringByteArray[ValueKey], actual);
+    }
+
+    [Property(DisplayName = "A hit of any kind returns the cached value, synchronously.")]
+    public static void HitValue(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        TimeProvider time,
+        GetFields.Hit hit)
+    {
+        var cacheClient = SetUpScenario(hit);
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+
+        var actual = sut.Get(key.Get);
+
+        // note(cosborn) `null` is the indicator of a miss, so assert it especially.
+        Assert.NotNull(actual);
+        Assert.Equal(hit.ValueDictionaryStringByteArray[ValueKey], actual);
+    }
+
+    [Property(
+        Arbitrary = [typeof(Generators.Fixed)],
+        DisplayName = "A hit with any fixed expiration does not attempt to update the item's TTL.")]
+    public static async Task HitFixedNoUpdateAsync(
+        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        TimeProvider time,
+        GetFields.Hit hit)
+    {
+        var cacheClient = SetUpScenario(hit);
+        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+
+        _ = await sut.GetAsync(key.Get);
 
         _ = await cacheClient.DidNotReceive().UpdateTtlAsync(
             Arg.Any<string>(),
@@ -178,7 +247,7 @@ public static class Refresh
     [Property(
         Arbitrary = [typeof(Generators.Fixed)],
         DisplayName = "A hit with any fixed expiration does not attempt to update the item's TTL, synchronously.")]
-    public static void FixedValueDoesNotRefresh(
+    public static void HitFixedNoUpdate(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
@@ -187,7 +256,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(hit);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        sut.Refresh(key.Get);
+        _ = sut.Get(key.Get);
 
         _ = cacheClient.DidNotReceive().UpdateTtlAsync(
             Arg.Any<string>(),
@@ -207,7 +276,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(hit);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        await sut.RefreshAsync(key.Get);
+        _ = await sut.GetAsync(key.Get);
 
         _ = await cacheClient.Received().UpdateTtlAsync(
             cacheOpts.Value.CacheName,
@@ -227,7 +296,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(hit);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        sut.Refresh(key.Get);
+        _ = sut.Get(key.Get);
 
         _ = cacheClient.Received().UpdateTtlAsync(
             cacheOpts.Value.CacheName,
@@ -238,7 +307,7 @@ public static class Refresh
     [Property(
         Arbitrary = [typeof(Generators.Refreshable.LimitedSlide)],
         DisplayName = "A hit with a limited sliding expiration attempts to update the item's TTL.")]
-    public static async Task LimitedSlidingValueRefreshesAsync(
+    public static async Task HitLimitedSlidingUpdateAsync(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
@@ -247,7 +316,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(hit);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        await sut.RefreshAsync(key.Get);
+        _ = await sut.GetAsync(key.Get);
 
         _ = await cacheClient.Received().UpdateTtlAsync(
             cacheOpts.Value.CacheName,
@@ -258,7 +327,7 @@ public static class Refresh
     [Property(
         Arbitrary = [typeof(Generators.Refreshable.LimitedSlide)],
         DisplayName = "A hit with a limited sliding expiration attempts to update the item's TTL, synchronously.")]
-    public static void LimitedSlidingValueRefreshes(
+    public static void HitLimitedSlidingUpdate(
         IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
@@ -267,7 +336,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(hit);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        sut.Refresh(key.Get);
+        _ = sut.Get(key.Get);
 
         _ = cacheClient.Received().UpdateTtlAsync(
             cacheOpts.Value.CacheName,
@@ -288,7 +357,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(hit, err);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        var actual = await Record.ExceptionAsync(() => sut.RefreshAsync(key.Get));
+        var actual = await Record.ExceptionAsync(() => sut.GetAsync(key.Get));
 
         var se = Assert.IsAssignableFrom<SdkException>(actual);
         Assert.Equal(se, err.InnerException);
@@ -307,7 +376,7 @@ public static class Refresh
         var cacheClient = SetUpScenario(hit, err);
         IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
 
-        var actual = Record.Exception(() => sut.Refresh(key.Get));
+        var actual = Record.Exception(() => sut.Get(key.Get));
 
         // note(cosborn) The important part of this test is that this _not_ be an `AggregateException`.
         var se = Assert.IsAssignableFrom<SdkException>(actual);
