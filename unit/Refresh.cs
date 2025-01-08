@@ -1,5 +1,4 @@
-// <copyright file="Refresh.cs" company="Cimpress, Inc.">
-// Copyright 2023 Cimpress, Inc.
+// Copyright 2024 Cimpress, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License") –
 // you may not use this file except in compliance with the License.
@@ -12,17 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// </copyright>
 
 namespace Momento.Extensions.Caching.Unit;
 
 /// <summary>Tests of the Remove operation, async and sync.</summary>
-[Properties(Arbitrary = new[] { typeof(Generators) }, MaxTest = 1024, QuietOnSuccess = true)]
+[Properties(Arbitrary = [typeof(Generators)], MaxTest = 1024, QuietOnSuccess = true)]
 public static class Refresh
 {
     [Property(DisplayName = "A miss does not throw.")]
     public static async Task MissNoThrowAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Miss miss)
@@ -37,7 +35,7 @@ public static class Refresh
 
     [Property(DisplayName = "A miss does not throw, synchronously.")]
     public static void MissNoThrow(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Miss miss)
@@ -52,7 +50,7 @@ public static class Refresh
 
     [Property(DisplayName = "A miss does not attempt to update an item's TTL.")]
     public static async Task MissNoUpdateAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Miss miss)
@@ -70,7 +68,7 @@ public static class Refresh
 
     [Property(DisplayName = "A miss does not attempt to update an item's TTL, synchronously.")]
     public static void MissNoUpdate(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Miss miss)
@@ -88,7 +86,7 @@ public static class Refresh
 
     [Property(DisplayName = "An error initially getting the value throws.")]
     public static async Task GetErrorThrowsAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Error err)
@@ -104,7 +102,7 @@ public static class Refresh
 
     [Property(DisplayName = "An error initially getting the value throws, synchronously.")]
     public static void GetErrorThrows(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Error err)
@@ -121,7 +119,7 @@ public static class Refresh
 
     [Property(DisplayName = "An error initially getting the value does not attempt to update an item's TTL.")]
     public static async Task GetErrorNoUpdateAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Error err)
@@ -139,7 +137,7 @@ public static class Refresh
 
     [Property(DisplayName = "An error initially getting the value does not attempt to update an item's TTL, synchronously.")]
     public static void GetNoUpdateThrows(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Error err)
@@ -159,7 +157,7 @@ public static class Refresh
         Arbitrary = [typeof(Generators.Fixed)],
         DisplayName = "A hit with any fixed expiration does not attempt to update the item's TTL.")]
     public static async Task FixedValueDoesNotRefreshAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Hit hit)
@@ -179,7 +177,7 @@ public static class Refresh
         Arbitrary = [typeof(Generators.Fixed)],
         DisplayName = "A hit with any fixed expiration does not attempt to update the item's TTL, synchronously.")]
     public static void FixedValueDoesNotRefresh(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Hit hit)
@@ -199,7 +197,7 @@ public static class Refresh
         Arbitrary = [typeof(Generators.Refreshable)],
         DisplayName = "A hit with any refreshable expiration attempts to update the item's TTL.")]
     public static async Task HitRefreshableUpdateAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Hit hit)
@@ -210,7 +208,7 @@ public static class Refresh
         await sut.RefreshAsync(key.Get);
 
         _ = await cacheClient.Received().UpdateTtlAsync(
-            cacheOpts.Value.CacheName,
+            cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Any<TimeSpan>());
     }
@@ -219,7 +217,7 @@ public static class Refresh
         Arbitrary = [typeof(Generators.Refreshable)],
         DisplayName = "A hit with any refreshable expiration attempts to update the item's TTL, synchronously.")]
     public static void HitRefreshableUpdate(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Hit hit)
@@ -230,7 +228,7 @@ public static class Refresh
         sut.Refresh(key.Get);
 
         _ = cacheClient.Received().UpdateTtlAsync(
-            cacheOpts.Value.CacheName,
+            cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Any<TimeSpan>());
     }
@@ -239,7 +237,7 @@ public static class Refresh
         Arbitrary = [typeof(Generators.Refreshable.LimitedSlide)],
         DisplayName = "A hit with a limited sliding expiration attempts to update the item's TTL.")]
     public static async Task LimitedSlidingValueRefreshesAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Hit hit)
@@ -250,7 +248,7 @@ public static class Refresh
         await sut.RefreshAsync(key.Get);
 
         _ = await cacheClient.Received().UpdateTtlAsync(
-            cacheOpts.Value.CacheName,
+            cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Any<TimeSpan>());
     }
@@ -259,7 +257,7 @@ public static class Refresh
         Arbitrary = [typeof(Generators.Refreshable.LimitedSlide)],
         DisplayName = "A hit with a limited sliding expiration attempts to update the item's TTL, synchronously.")]
     public static void LimitedSlidingValueRefreshes(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Hit hit)
@@ -270,7 +268,7 @@ public static class Refresh
         sut.Refresh(key.Get);
 
         _ = cacheClient.Received().UpdateTtlAsync(
-            cacheOpts.Value.CacheName,
+            cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Any<TimeSpan>());
     }
@@ -279,7 +277,7 @@ public static class Refresh
         Arbitrary = [typeof(Generators.Refreshable)],
         DisplayName = "An error on updating the TTL throws.")]
     public static async Task UpdateTtlErrorThrowsAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Hit hit,
@@ -298,7 +296,7 @@ public static class Refresh
         Arbitrary = [typeof(Generators.Refreshable)],
         DisplayName = "An error on updating the TTL throws, synchronously.")]
     public static void UpdateTtlErrorThrows(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         GetFields.Hit hit,

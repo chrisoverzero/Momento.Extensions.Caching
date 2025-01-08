@@ -1,5 +1,4 @@
-// <copyright file="MomentoCache.cs" company="Cimpress, Inc.">
-// Copyright 2023 Cimpress, Inc.
+// Copyright 2024 Cimpress, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License") –
 // you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// </copyright>
 
 namespace Momento.Extensions.Caching;
 
@@ -20,7 +18,7 @@ namespace Momento.Extensions.Caching;
 /// <param name="cacheClient">The inner cache client.</param>
 /// <param name="cacheOpts">The configuration options for the cache.</param>
 /// <param name="timeProvider">A source of time.</param>
-public sealed class MomentoCache(ICacheClient cacheClient, IOptionsSnapshot<MomentoCacheOptions> cacheOpts, TimeProvider timeProvider)
+sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<MomentoCacheOptions> cacheOpts, TimeProvider timeProvider)
     : IDistributedCache
 {
     /// <summary>The key to the field in which the cached value is stored.</summary>
@@ -36,33 +34,20 @@ public sealed class MomentoCache(ICacheClient cacheClient, IOptionsSnapshot<Mome
     static readonly FrozenSet<string> s_getFields = FrozenSet.ToFrozenSet([ValueKey, SlidingExpirationKey, AbsoluteExpirationKey]);
 
     /// <inheritdoc/>
-    public byte[]? Get(string key) => GetAsync(key).GetAwaiter().GetResult();
-
-    /// <inheritdoc/>
     public Task<byte[]?> GetAsync(string key, CancellationToken token = default) => GetAndRefreshAsync(key, s_getFields, token);
-
-    /// <inheritdoc/>
-    public void Refresh(string key) => RefreshAsync(key).GetAwaiter().GetResult();
 
     /// <inheritdoc/>
     public Task RefreshAsync(string key, CancellationToken token = default) => GetAndRefreshAsync(key, s_refreshFields, token);
 
     /// <inheritdoc/>
-    public void Remove(string key) => RemoveAsync(key).GetAwaiter().GetResult();
-
-    /// <inheritdoc/>
     public async Task RemoveAsync(string key, CancellationToken token = default)
     {
-        var result = await cacheClient.DeleteAsync(cacheOpts.Value.CacheName, key).ConfigureAwait(false);
+        var result = await cacheClient.DeleteAsync(cacheOpts.CurrentValue.CacheName, key).ConfigureAwait(false);
         if (result is Delete.Error { InnerException: { } ie })
         {
             throw ie;
         }
     }
-
-    /// <inheritdoc/>
-    public void Set(string key, byte[] value, DistributedCacheEntryOptions options) =>
-        SetAsync(key, value, options).GetAwaiter().GetResult();
 
     /// <inheritdoc/>
     public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
@@ -112,7 +97,7 @@ public sealed class MomentoCache(ICacheClient cacheClient, IOptionsSnapshot<Mome
                 /* note(cosborn)
                  * When no expiration is provided, the default TTL as provided when constructing
                  * the implementation of `ICacheClient` will be used as configured by the caller.
-                 * This is _not necessarily_ the value of `cacheOpts.Value.DefaultTtl`, since an
+                 * This is _not necessarily_ the value of `cacheOpts.CurrentValue.DefaultTtl`, since an
                  * instance of a custom implementation of `ICacheClient` could have been resolved
                  * from DI which ignores this value. (Untidy, but not impossible.) Nicely,
                  * `CollectionTtl.FromCacheTtl()` means exactly this.
@@ -124,7 +109,7 @@ public sealed class MomentoCache(ICacheClient cacheClient, IOptionsSnapshot<Mome
         token.ThrowIfCancellationRequested();
 
         var result = await cacheClient
-            .DictionarySetFieldsAsync(cacheOpts.Value.CacheName, key, items, ttl)
+            .DictionarySetFieldsAsync(cacheOpts.CurrentValue.CacheName, key, items, ttl)
             .ConfigureAwait(false);
         if (result is SetFields.Error { InnerException: { } ie })
         {
@@ -156,14 +141,13 @@ public sealed class MomentoCache(ICacheClient cacheClient, IOptionsSnapshot<Mome
 
     async Task<byte[]?> GetAndRefreshAsync<TFields>(string key, TFields fields, CancellationToken token)
         where TFields : IEnumerable<string> => await cacheClient
-        .DictionaryGetFieldsAsync(cacheOpts.Value.CacheName, key, fields)
+        .DictionaryGetFieldsAsync(cacheOpts.CurrentValue.CacheName, key, fields)
         .ConfigureAwait(false) switch
-    {
-        GetFields.Hit { ValueDictionaryStringByteArray: { } vd } =>
-            await GetAndRefreshCoreAsync(key, vd, token).ConfigureAwait(false),
-        GetFields.Error { InnerException: { } ie } => throw ie,
-        GetFields.Miss or _ => null,
-    };
+        {
+            GetFields.Hit { ValueDictionaryStringByteArray: { } vd } => await GetAndRefreshCoreAsync(key, vd, token).ConfigureAwait(false),
+            GetFields.Error { InnerException: { } ie } => throw ie,
+            GetFields.Miss or _ => null,
+        };
 
     async Task<byte[]?> GetAndRefreshCoreAsync<TDictionary>(string key, TDictionary dict, CancellationToken token)
         where TDictionary : IDictionary<string, byte[]>
@@ -193,7 +177,7 @@ public sealed class MomentoCache(ICacheClient cacheClient, IOptionsSnapshot<Mome
             token.ThrowIfCancellationRequested();
 
             var result = await cacheClient
-                .UpdateTtlAsync(cacheOpts.Value.CacheName, key, ttl)
+                .UpdateTtlAsync(cacheOpts.CurrentValue.CacheName, key, ttl)
                 .ConfigureAwait(false);
             if (result is UpdateTtl.Error { InnerException: { } ie })
             {

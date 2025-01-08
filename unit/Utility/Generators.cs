@@ -1,5 +1,4 @@
-// <copyright file="Generators.cs" company="Cimpress, Inc.">
-// Copyright 2023 Cimpress, Inc.
+// Copyright 2024 Cimpress, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License") –
 // you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// </copyright>
 
 namespace Momento.Extensions.Caching.Unit;
 
@@ -29,14 +27,16 @@ static class Generators
         .Convert(static s => s.Get, NonEmptyString.NewNonEmptyString)
         .Convert(static msg => (SdkException)new UnknownException(msg), static e => e.Message);
 
-    static readonly Gen<FieldValue> s_fieldValue =
-        from value in Default.GeneratorFor<NonEmptyArray<byte>>()
-        select ByteString.CopyFrom(value.Get) into cacheBody
-        select new FieldValue
-        {
-            CacheBody = cacheBody,
-            Result = Hit,
-        };
+    static readonly Arbitrary<FieldValue> s_fieldValue = Default.ArbFor<NonEmptyArray<byte>>()
+        .Convert(static bb => bb.Get, NonEmptyArray<byte>.NewNonEmptyArray)
+        .Convert(ByteString.CopyFrom, static bs => bs.ToByteArray())
+        .Convert(
+            static bs => new FieldValue
+            {
+                CacheBody = bs,
+                Result = Hit,
+            },
+            static fv => fv.CacheBody);
 
     public static Arbitrary<Ttl> Ttl { get; } = Gen.Choose(1, (int)TimeSpan.FromDays(365).TotalSeconds)
         .Select(static s => TimeSpan.FromSeconds(s))
@@ -80,8 +80,8 @@ static class Generators
         Result = Miss,
     };
 
-    public static Arbitrary<IOptionsSnapshot<T>> OptionsSnapshotOf<T>()
-        where T : class => Default.ArbFor<T>().Convert(OptionsSnapshot.Create, static os => os.Value);
+    public static Arbitrary<IOptionsMonitor<T>> OptionsMonitorOf<T>()
+        where T : class => Default.ArbFor<T>().Convert(OptionsMonitor.Create, static os => os.CurrentValue);
 
     static Arbitrary<TError> Error<TError>(Func<SdkException, TError> create)
         where TError : IError => s_sdkException.Convert(create, static e => e.InnerException);
@@ -126,14 +126,13 @@ static class Generators
             .ToArbitrary();
 
         public static Arbitrary<GetFields.Hit> GetFieldsHit { get; } = Arb.From(
-            from value in s_fieldValue
+            from value in s_fieldValue.Generator
             select FromFields(value) into responses
             select new GetFields.Hit(s_fields, responses));
 
         public static class Default
         {
-            public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } = Gen.Constant(default(ValueTuple))
-                .Select(static _ => new DistributedCacheEntryOptions()) // todo(cosborn) Gen.Fresh doesn't seem to work correctly in C#.
+            public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } = Gen.Fresh(() => new DistributedCacheEntryOptions())
                 .ToArbitrary();
         }
 
@@ -168,7 +167,7 @@ static class Generators
                 FromTtl(static ttl => new DistributedCacheEntryOptions().SetSlidingExpiration(ttl));
 
             public static Arbitrary<GetFields.Hit> GetFieldsHit { get; } = Arb.From(
-                from value in s_fieldValue
+                from value in s_fieldValue.Generator
                 from slide in Ttl.Generator
                 select FromFields(value, slide) into responses
                 select new GetFields.Hit(s_fields, responses));
@@ -180,7 +179,7 @@ static class Generators
                 FromTtl(static ttl => new DistributedCacheEntryOptions().SetSlidingExpiration(ttl).SetAbsoluteExpiration(ttl + TimeSpan.FromSeconds(1)));
 
             public static Arbitrary<GetFields.Hit> GetFieldsHit { get; } = Arb.From(
-                from value in s_fieldValue
+                from value in s_fieldValue.Generator
                 from slide in Ttl.Generator
                 from absolute in Default.GeneratorFor<DateTimeOffset>()
                 select FromFields(value, slide, absolute) into responses

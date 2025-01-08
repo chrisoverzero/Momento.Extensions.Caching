@@ -1,5 +1,4 @@
-// <copyright file="Set.Refreshable.cs" company="Cimpress, Inc.">
-// Copyright 2023 Cimpress, Inc.
+// Copyright 2024 Cimpress, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License") –
 // you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// </copyright>
 
 namespace Momento.Extensions.Caching.Unit;
 
@@ -27,7 +25,7 @@ public static partial class Set
         Arbitrary = [typeof(Generators.Refreshable)],
         DisplayName = "A set with any refreshable expiration uses the slide.")]
     public static async Task SlidingSlideAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         TimeProvider time,
         NonNull<string> key,
         NonEmptyArray<byte> value,
@@ -39,7 +37,7 @@ public static partial class Set
         await sut.SetAsync(key.Get, value.Get, entryOpts);
 
         _ = await cacheClient.Received().DictionarySetFieldsAsync(
-            cacheOpts.Value.CacheName,
+            cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Any<Items>(),
             CollectionTtl.RefreshTtlIfProvided(entryOpts.SlidingExpiration));
@@ -49,7 +47,7 @@ public static partial class Set
         Arbitrary = [typeof(Generators.Refreshable)],
         DisplayName = "A set with any refreshable expiration uses the slide, synchronously.")]
     public static void SlidingSlide(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         TimeProvider time,
         NonNull<string> key,
         NonEmptyArray<byte> value,
@@ -61,7 +59,7 @@ public static partial class Set
         sut.Set(key.Get, value.Get, entryOpts);
 
         _ = cacheClient.Received().DictionarySetFieldsAsync(
-            cacheOpts.Value.CacheName,
+            cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Any<Items>(),
             CollectionTtl.RefreshTtlIfProvided(entryOpts.SlidingExpiration));
@@ -71,7 +69,7 @@ public static partial class Set
         Arbitrary = [typeof(Generators.Refreshable)],
         DisplayName = "A set with any refreshable expiration includes a sliding expiration key.")]
     public static async Task RefreshableSlidingAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         TimeProvider time,
         NonNull<string> key,
         NonEmptyArray<byte> value,
@@ -83,7 +81,7 @@ public static partial class Set
         await sut.SetAsync(key.Get, value.Get, entryOpts);
 
         _ = await cacheClient.Received().DictionarySetFieldsAsync(
-            cacheOpts.Value.CacheName,
+            cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Is<Items>(static ps => ps.Any(p => p.Key == SlidingExpirationKey)),
             Arg.Any<CollectionTtl>());
@@ -93,7 +91,7 @@ public static partial class Set
         Arbitrary = [typeof(Generators.Refreshable)],
         DisplayName = "A set with any refreshable expiration includes a sliding expiration key, synchronously.")]
     public static void RefreshableSliding(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         TimeProvider time,
         NonNull<string> key,
         NonEmptyArray<byte> value,
@@ -105,7 +103,7 @@ public static partial class Set
         sut.Set(key.Get, value.Get, entryOpts);
 
         _ = cacheClient.Received().DictionarySetFieldsAsync(
-            cacheOpts.Value.CacheName,
+            cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Is<Items>(static ps => ps.Any(p => p.Key == SlidingExpirationKey)),
             Arg.Any<CollectionTtl>());

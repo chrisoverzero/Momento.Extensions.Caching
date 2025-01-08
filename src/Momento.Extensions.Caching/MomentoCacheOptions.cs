@@ -1,5 +1,4 @@
-// <copyright file="MomentoCacheOptions.cs" company="Cimpress, Inc.">
-// Copyright 2023 Cimpress, Inc.
+// Copyright 2024 Cimpress, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License") –
 // you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// </copyright>
 
 namespace Momento.Extensions.Caching;
 
@@ -22,7 +20,7 @@ public sealed partial class MomentoCacheOptions
 {
     /// <summary>Gets or sets the name of the cache from which to retrieve items.</summary>
     [Required]
-    public string CacheName { get; set; } = null!;
+    public required string CacheName { get; set; }
 
     /// <summary>Gets or sets the default Time-to-Live value for items in the cache.</summary>
     public TimeSpan DefaultTtl { get; set; } = TimeSpan.FromMinutes(10); // The default default value in the Momento CLI.
@@ -39,7 +37,5 @@ public sealed partial class MomentoCacheOptions
     /// <summary>A validator for instances of the <see cref="MomentoCacheOptions"/> class.</summary>
     [OptionsValidator]
     public sealed partial class Validator
-        : IValidateOptions<MomentoCacheOptions>
-    {
-    }
+        : IValidateOptions<MomentoCacheOptions>;
 }

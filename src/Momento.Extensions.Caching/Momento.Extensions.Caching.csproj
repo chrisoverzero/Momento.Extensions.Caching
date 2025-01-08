@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
@@ -8,6 +9,9 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Momento.Sdk" />
+
+    <!-- Explicitly depend on non-vulnerable versions of Momento.SDK's dependencies. -->
+    <PackageReference Include="Newtonsoft.Json"/>
 
     <Using Include="System.Collections.Frozen" />
     <Using Include="System.Collections.Immutable" />

@@ -1,5 +1,4 @@
-// <copyright file="Remove.cs" company="Cimpress, Inc.">
-// Copyright 2023 Cimpress, Inc.
+// Copyright 2024 Cimpress, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License") –
 // you may not use this file except in compliance with the License.
@@ -12,17 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// </copyright>
 
 namespace Momento.Extensions.Caching.Unit;
 
 /// <summary>Tests of the Remove operation, async and sync.</summary>
-[Properties(Arbitrary = new[] { typeof(Generators) }, MaxTest = 1024, QuietOnSuccess = true)]
+[Properties(Arbitrary = [typeof(Generators)], MaxTest = 1024, QuietOnSuccess = true)]
 public static class Remove
 {
     [Property(DisplayName = "Any removal attempts to delete the value.")]
     public static async Task DeleteAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time)
     {
@@ -31,12 +29,12 @@ public static class Remove
 
         await sut.RemoveAsync(key.Get);
 
-        _ = await cacheClient.Received().DeleteAsync(cacheOpts.Value.CacheName, key.Get);
+        _ = await cacheClient.Received().DeleteAsync(cacheOpts.CurrentValue.CacheName, key.Get);
     }
 
     [Property(DisplayName = "Any removal attempts to delete the value, synchronously.")]
     public static void Delete(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time)
     {
@@ -45,12 +43,12 @@ public static class Remove
 
         _ = Record.Exception(() => sut.Remove(key.Get));
 
-        _ = cacheClient.Received().DeleteAsync(cacheOpts.Value.CacheName, key.Get);
+        _ = cacheClient.Received().DeleteAsync(cacheOpts.CurrentValue.CacheName, key.Get);
     }
 
     [Property(DisplayName = "Any removal does not attempt to update any item's TTL.")]
     public static async Task NoUpdateAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time)
     {
@@ -67,7 +65,7 @@ public static class Remove
 
     [Property(DisplayName = "Any removal does not attempt to update any item's TTL, synchronously.")]
     public static void NoUpdate(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time)
     {
@@ -84,7 +82,7 @@ public static class Remove
 
     [Property(DisplayName = "An error is converted to its wrapped exception.")]
     public static async Task ErrorThrowsAsync(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         Delete.Error error)
@@ -100,7 +98,7 @@ public static class Remove
 
     [Property(DisplayName = "An error is converted to its wrapped exception, synchronously.")]
     public static void ErrorThrows(
-        IOptionsSnapshot<MomentoCacheOptions> cacheOpts,
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         TimeProvider time,
         Delete.Error error)
