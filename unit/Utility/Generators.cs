@@ -16,7 +16,13 @@ namespace Momento.Extensions.Caching.Unit;
 
 static class Generators
 {
-    static readonly ByteString[] s_fields =
+    static readonly
+#if NET9_0_OR_GREATER
+    FrozenSet<ByteString>
+#else
+    HashSet<ByteString>
+#endif
+    s_fields =
     [
         ByteString.CopyFromUtf8(ValueKey),
         ByteString.CopyFromUtf8(SlidingExpirationKey),
@@ -51,11 +57,6 @@ static class Generators
             CacheName = cacheName.Get,
             DefaultTtl = defaultTtl,
         });
-
-    public static Arbitrary<TimeProvider> AnyTimeProvider { get; } = Gen.Frequency(
-            (1, Gen.Constant(TimeProvider.System)),
-            (99, Default.GeneratorFor<DateTimeOffset>().Select(StaticTimeProvider.From)))
-        .ToArbitrary();
 
     public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } = Gen.OneOf(
             Fixed.DistributedCacheEntryOptions.Generator,
@@ -106,13 +107,13 @@ static class Generators
 
         static FieldValue SlidingField(TimeSpan slide) => new()
         {
-            CacheBody = Duration.FromTimeSpan(slide).ToByteString(),
+            CacheBody = ByteString.CopyFrom(Marshal.To(slide)),
             Result = Hit,
         };
 
         static FieldValue AbsoluteField(DateTimeOffset absolute) => new()
         {
-            CacheBody = Timestamp.FromDateTimeOffset(absolute).ToByteString(),
+            CacheBody = ByteString.CopyFrom(Marshal.To(absolute)),
             Result = Hit,
         };
     }
@@ -139,13 +140,20 @@ static class Generators
         public static class Absolute
         {
             public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } =
-                FromTtl(static ttl => new DistributedCacheEntryOptions().SetAbsoluteExpiration(ttl));
+                FromTtl(static ttl => new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = ttl,
+                });
         }
 
         public static class BlockedSlide
         {
             public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } =
-                FromTtl(static ttl => new DistributedCacheEntryOptions().SetSlidingExpiration(ttl).SetAbsoluteExpiration(ttl - TimeSpan.FromSeconds(1)));
+                FromTtl(static ttl => new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = ttl - TimeSpan.FromSeconds(1),
+                    SlidingExpiration = ttl,
+                });
         }
     }
 
@@ -164,7 +172,10 @@ static class Generators
         public static class UnlimitedSlide
         {
             public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } =
-                FromTtl(static ttl => new DistributedCacheEntryOptions().SetSlidingExpiration(ttl));
+                FromTtl(static ttl => new DistributedCacheEntryOptions
+                {
+                    SlidingExpiration = ttl,
+                });
 
             public static Arbitrary<GetFields.Hit> GetFieldsHit { get; } = Arb.From(
                 from value in s_fieldValue.Generator
@@ -176,7 +187,11 @@ static class Generators
         public static class LimitedSlide
         {
             public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } =
-                FromTtl(static ttl => new DistributedCacheEntryOptions().SetSlidingExpiration(ttl).SetAbsoluteExpiration(ttl + TimeSpan.FromSeconds(1)));
+                FromTtl(static ttl => new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = ttl + TimeSpan.FromSeconds(1),
+                    SlidingExpiration = ttl,
+                });
 
             public static Arbitrary<GetFields.Hit> GetFieldsHit { get; } = Arb.From(
                 from value in s_fieldValue.Generator

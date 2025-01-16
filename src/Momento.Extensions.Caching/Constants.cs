@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Momento.Extensions.Caching.Unit;
+namespace Momento.Caching.Extensions;
 
-sealed class StaticTimeProvider(DateTimeOffset value)
-    : TimeProvider
+/// <summary>Constants for the DynamoDB caching extension.</summary>
+static class Constants
 {
-    public static TimeProvider Max { get; } = new StaticTimeProvider(DateTimeOffset.MaxValue);
+    /// <summary>The name of the attribute in which the cached value is stored.</summary>
+    public const string ValueKey = "v";
 
-    public static TimeProvider From(DateTimeOffset value) => new StaticTimeProvider(value);
+    /// <summary>The name of the attribute in which the sliding expiration value is stored.</summary>
+    public const string SlidingExpirationKey = "s";
 
-    /// <inheritdoc/>
-    public override DateTimeOffset GetUtcNow() => value;
+    /// <summary>The name of the attribute in which the absolute expiration value is stored.</summary>
+    public const string AbsoluteExpirationKey = "a";
 }

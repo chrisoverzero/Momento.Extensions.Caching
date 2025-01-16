@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
@@ -14,7 +13,6 @@
     <PackageReference Include="Newtonsoft.Json"/>
 
     <Using Include="System.Collections.Frozen" />
-    <Using Include="System.Collections.Immutable" />
     <Using Include="System.ComponentModel.DataAnnotations" />
     <Using Include="System.Runtime.CompilerServices" />
     <Using Include="System.Text" />
@@ -23,13 +21,13 @@
     <Using Include="Microsoft.Extensions.Caching.Distributed" />
     <Using Include="Microsoft.Extensions.DependencyInjection" />
     <Using Include="Microsoft.Extensions.DependencyInjection.Extensions" />
-    <Using Include="Microsoft.Extensions.Internal" />
     <Using Include="Microsoft.Extensions.Options" />
     <Using Include="Momento.Sdk" />
     <Using Include="Momento.Sdk.Auth" />
     <Using Include="Momento.Sdk.Config" />
     <Using Include="Momento.Sdk.Requests" />
     <Using Static="true" Include="System.Globalization.CultureInfo" />
+    <Using Static="true" Include="Momento.Caching.Extensions.Constants" />
     <Using Alias="Delete" Include="Momento.Sdk.Responses.CacheDeleteResponse" />
     <Using Alias="GetField" Include="Momento.Sdk.Responses.CacheDictionaryGetFieldResponse" />
     <Using Alias="GetFields" Include="Momento.Sdk.Responses.CacheDictionaryGetFieldsResponse" />

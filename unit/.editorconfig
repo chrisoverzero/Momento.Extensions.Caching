@@ -1,8 +1,8 @@
 [*.cs]
 
-# dotnet_diagnostic.CA1062.severity = none # We control when nulls are generated.
-# dotnet_diagnostic.CA1716.severity = none # These tests will not be consumed from another language.
-# dotnet_diagnostic.CA1859.severity = none # The point is to test through the interface.
-# dotnet_diagnostic.CA2007.severity = none # ConfigureAwait is deleterious to xUnit.NET
+dotnet_diagnostic.CA1062.severity = none # We control when nulls are generated.
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1716.severity = none # These tests will not be consumed from another language.
+dotnet_diagnostic.CA2007.severity = none # ConfigureAwait is deleterious to xUnit.NET
 dotnet_diagnostic.CS1591.severity = none
 dotnet_diagnostic.SA1600.severity = none

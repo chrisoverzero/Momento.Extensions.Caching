@@ -16,7 +16,7 @@ namespace Momento.Extensions.Caching.Unit;
 
 /// <summary>
 /// A test wrapper for options values which implements <see cref="IOptionsMonitor{TOptions}"/>.
-/// It doesn't actually monitor anything.
+/// It doesn't actually monitor anything – koalas sleep a lot.
 /// </summary>
 /// <typeparam name="TOptions">The type of the options values.</typeparam>
 /// <param name="currentValue">The default configuration options value, named by <see cref="Options.DefaultName"/>.</param>
@@ -25,10 +25,15 @@ sealed class KoalaOptionsMonitor<TOptions>(TOptions currentValue)
     where TOptions : class
 {
     /// <inheritdoc/>
-    public TOptions CurrentValue => currentValue;
+    public TOptions CurrentValue { get; } = currentValue;
 
     /// <inheritdoc/>
-    public TOptions Get(string? name) => CurrentValue;
+    TOptions IOptionsMonitor<TOptions>.Get(string? name) => name switch
+    {
+        { } n when Ordinal.Equals(n, Options.DefaultName) => CurrentValue,
+        { } => Activator.CreateInstance<TOptions>(), // note(cosborn) As the real implementation does.
+        null or _ => CurrentValue,
+    };
 
     public IDisposable? OnChange(Action<TOptions, string?> listener) => null;
 }

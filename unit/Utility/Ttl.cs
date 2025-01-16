@@ -16,7 +16,7 @@ namespace Momento.Extensions.Caching.Unit;
 
 /// <summary>An explicitly positive span of time.</summary>
 /// <param name="Value">The wrapped value.</param>
-public readonly record struct Ttl(TimeSpan Value)
+readonly record struct Ttl(TimeSpan Value)
 {
     public static implicit operator TimeSpan(Ttl ttl) => ttl.ToTimeSpan();
 

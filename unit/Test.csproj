@@ -1,33 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
-
-    <!-- In a unit test project, we aren't concerned with Momento.SDK's outdted dependencies. -->
+    
+    <!-- In a unit test project, we aren't concerned with Momento.SDK's outdated dependencies. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1903</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" />
     <PackageReference Include="FsCheck.Xunit" />
-    <PackageReference Include="JunitXml.TestLogger" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="NSubstitute" />
-    <PackageReference Include="xunit.assert" />
-    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.v3.assert" />
 
     <ProjectReference Include="..\src\Momento.Extensions.Caching\Momento.Extensions.Caching.csproj" />
 
-    <Using Include="System.Collections.Immutable" />
+    <Using Include="System.Collections.Frozen" />
     <Using Include="FsCheck" />
     <Using Include="FsCheck.Fluent" />
     <Using Include="FsCheck.Xunit" />
     <Using Include="Google.Protobuf" />
-    <Using Include="Google.Protobuf.WellKnownTypes" />
     <Using Include="Microsoft.Extensions.Caching.Distributed" />
     <Using Include="Microsoft.Extensions.Options" />
+    <Using Include="Microsoft.Extensions.Time.Testing" />
     <Using Include="Momento.Protos.CacheClient" />
     <Using Include="Momento.Sdk" />
     <Using Include="Momento.Sdk.Exceptions" />
@@ -36,6 +33,8 @@
     <Using Include="NSubstitute" />
     <Using Include="Xunit" />
     <Using Static="true" Include="System.Globalization.CultureInfo" />
+    <Using Static="true" Include="System.StringComparer" />
+    <Using Static="true" Include="Momento.Caching.Extensions.Constants" />
     <Using Static="true" Include="FsCheck.Fluent.ArbMap" />
     <Using Static="true" Include="Momento.Extensions.Caching.MomentoCache" />
     <Using Static="true" Include="Momento.Protos.CacheClient.ECacheResult" />

@@ -19,24 +19,22 @@ namespace Momento.Extensions.Caching.Unit;
 /// A "fixed" expiration is one which doesn't slide. It could be defaulted,
 /// absolute, or a limited slide whose limit is earlier than the first slide.
 /// </remarks>
-public static partial class Set
+public sealed partial class Set
 {
     [Property(
         Arbitrary = [typeof(Generators.Fixed)],
         DisplayName = "A set with any fixed expiration does not include a sliding expiration key.")]
-    public static async Task FixedNoSlidingAsync(
+    public async Task FixedNoSlidingAsync(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         NonEmptyArray<byte> value,
-        TimeProvider time,
         DistributedCacheEntryOptions entryOpts)
     {
-        var cacheClient = Substitute.For<ICacheClient>();
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        var sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         await sut.SetAsync(key.Get, value.Get, entryOpts);
 
-        _ = await cacheClient.Received().DictionarySetFieldsAsync(
+        _ = await _cacheClient.Received().DictionarySetFieldsAsync(
             cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Is<Items>(static ps => ps.All(p => p.Key != SlidingExpirationKey)),
@@ -46,19 +44,17 @@ public static partial class Set
     [Property(
         Arbitrary = [typeof(Generators.Fixed)],
         DisplayName = "A set with any fixed expiration does not include a sliding expiration key, synchronously.")]
-    public static void FixedNoSliding(
+    public void FixedNoSliding(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         NonEmptyArray<byte> value,
-        TimeProvider time,
         DistributedCacheEntryOptions entryOpts)
     {
-        var cacheClient = Substitute.For<ICacheClient>();
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        IDistributedCache sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         sut.Set(key.Get, value.Get, entryOpts);
 
-        _ = cacheClient.Received().DictionarySetFieldsAsync(
+        _ = _cacheClient.Received().DictionarySetFieldsAsync(
             cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Is<Items>(static ps => ps.All(p => p.Key != SlidingExpirationKey)),
@@ -68,19 +64,17 @@ public static partial class Set
     [Property(
         Arbitrary = [typeof(Generators.Fixed)],
         DisplayName = "A set with any fixed expiration does not include an absolute expiration key.")]
-    public static async Task AbsoluteNoAbsoluteAsync(
+    public async Task AbsoluteNoAbsoluteAsync(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         NonEmptyArray<byte> value,
-        TimeProvider time,
         DistributedCacheEntryOptions entryOpts)
     {
-        var cacheClient = Substitute.For<ICacheClient>();
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        var sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         await sut.SetAsync(key.Get, value.Get, entryOpts);
 
-        _ = await cacheClient.Received().DictionarySetFieldsAsync(
+        _ = await _cacheClient.Received().DictionarySetFieldsAsync(
             cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Is<Items>(static ps => ps.All(p => p.Key != AbsoluteExpirationKey)),
@@ -90,22 +84,100 @@ public static partial class Set
     [Property(
         Arbitrary = [typeof(Generators.Fixed)],
         DisplayName = "A set with any fixed expiration does not include an absolute expiration key, synchronously.")]
-    public static void AbsoluteNoAbsolute(
+    public void AbsoluteNoAbsolute(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
         NonEmptyArray<byte> value,
-        TimeProvider time,
         DistributedCacheEntryOptions entryOpts)
     {
-        var cacheClient = Substitute.For<ICacheClient>();
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        IDistributedCache sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         sut.Set(key.Get, value.Get, entryOpts);
 
-        _ = cacheClient.Received().DictionarySetFieldsAsync(
+        _ = _cacheClient.Received().DictionarySetFieldsAsync(
             cacheOpts.CurrentValue.CacheName,
             key.Get,
             Arg.Is<Items>(static ps => ps.All(p => p.Key != AbsoluteExpirationKey)),
             Arg.Any<CollectionTtl>());
+    }
+
+    [Property(
+        Arbitrary = [typeof(Generators.Fixed.Absolute)],
+        DisplayName = "A set with a fixed absolute expiration uses the time between now and then.")]
+    public async Task AbsoluteDifferenceAsync(
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        NonEmptyArray<byte> value,
+        DistributedCacheEntryOptions entryOpts)
+    {
+        var sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
+
+        await sut.SetAsync(key.Get, value.Get, entryOpts);
+
+        _ = await _cacheClient.Received().DictionarySetFieldsAsync(
+            cacheOpts.CurrentValue.CacheName,
+            key.Get,
+            Arg.Any<Items>(),
+            CollectionTtl.RefreshTtlIfProvided(entryOpts.AbsoluteExpirationRelativeToNow));
+    }
+
+    [Property(
+        Arbitrary = [typeof(Generators.Fixed.Absolute)],
+        DisplayName = "A set with a fixed absolute expiration uses the time between now and then, synchronously.")]
+    public void AbsoluteDifference(
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        NonEmptyArray<byte> value,
+        DistributedCacheEntryOptions entryOpts)
+    {
+        IDistributedCache sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
+
+        sut.Set(key.Get, value.Get, entryOpts);
+
+        _ = _cacheClient.Received().DictionarySetFieldsAsync(
+            cacheOpts.CurrentValue.CacheName,
+            key.Get,
+            Arg.Any<Items>(),
+            CollectionTtl.RefreshTtlIfProvided(entryOpts.AbsoluteExpirationRelativeToNow));
+    }
+
+    [Property(
+        Arbitrary = [typeof(Generators.Fixed.BlockedSlide)],
+        DisplayName = "A set with a blocked sliding expiration uses the limit.")]
+    public async Task SlidingAndShortLimitLimitAsync(
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        NonEmptyArray<byte> value,
+        DistributedCacheEntryOptions entryOpts)
+    {
+        var sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
+
+        await sut.SetAsync(key.Get, value.Get, entryOpts);
+
+        _ = await _cacheClient.Received().DictionarySetFieldsAsync(
+            cacheOpts.CurrentValue.CacheName,
+            key.Get,
+            Arg.Any<Items>(),
+            CollectionTtl.RefreshTtlIfProvided(entryOpts.AbsoluteExpirationRelativeToNow));
+    }
+
+    [Property(
+        Arbitrary = [typeof(Generators.Fixed.BlockedSlide)],
+        DisplayName = "A set with a blocked sliding expiration uses the limit, synchronously.")]
+    public void SlidingAndShortLimitLimit(
+        IOptionsMonitor<MomentoCacheOptions> cacheOpts,
+        NonNull<string> key,
+        NonEmptyArray<byte> value,
+        DistributedCacheEntryOptions entryOpts)
+    {
+        IDistributedCache sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
+
+        sut.Set(key.Get, value.Get, entryOpts);
+
+        _ = _cacheClient.Received().DictionarySetFieldsAsync(
+            cacheOpts.CurrentValue.CacheName,
+            key.Get,
+            Arg.Any<Items>(),
+            CollectionTtl.RefreshTtlIfProvided(entryOpts.AbsoluteExpirationRelativeToNow));
     }
 }

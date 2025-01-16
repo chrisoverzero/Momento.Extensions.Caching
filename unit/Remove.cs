@@ -16,108 +16,97 @@ namespace Momento.Extensions.Caching.Unit;
 
 /// <summary>Tests of the Remove operation, async and sync.</summary>
 [Properties(Arbitrary = [typeof(Generators)], MaxTest = 1024, QuietOnSuccess = true)]
-public static class Remove
+public sealed class Remove
+    : IDisposable
 {
+    static readonly TimeProvider s_time = TimeProvider.System;
+
+    readonly ICacheClient _cacheClient = Substitute.For<ICacheClient>();
+
     [Property(DisplayName = "Any removal attempts to delete the value.")]
-    public static async Task DeleteAsync(
+    public async Task DeleteAsync(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
-        NonNull<string> key,
-        TimeProvider time)
+        NonNull<string> key)
     {
-        var cacheClient = Substitute.For<ICacheClient>();
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        var sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         await sut.RemoveAsync(key.Get);
 
-        _ = await cacheClient.Received().DeleteAsync(cacheOpts.CurrentValue.CacheName, key.Get);
+        _ = await _cacheClient.Received().DeleteAsync(cacheOpts.CurrentValue.CacheName, key.Get);
     }
 
     [Property(DisplayName = "Any removal attempts to delete the value, synchronously.")]
-    public static void Delete(
+    public void Delete(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
-        NonNull<string> key,
-        TimeProvider time)
+        NonNull<string> key)
     {
-        var cacheClient = Substitute.For<ICacheClient>();
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        IDistributedCache sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         _ = Record.Exception(() => sut.Remove(key.Get));
 
-        _ = cacheClient.Received().DeleteAsync(cacheOpts.CurrentValue.CacheName, key.Get);
+        _ = _cacheClient.Received().DeleteAsync(cacheOpts.CurrentValue.CacheName, key.Get);
     }
 
     [Property(DisplayName = "Any removal does not attempt to update any item's TTL.")]
-    public static async Task NoUpdateAsync(
+    public async Task NoUpdateAsync(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
-        NonNull<string> key,
-        TimeProvider time)
+        NonNull<string> key)
     {
-        var cacheClient = Substitute.For<ICacheClient>();
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        var sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         await sut.RemoveAsync(key.Get);
 
-        _ = await cacheClient.DidNotReceive().UpdateTtlAsync(
+        _ = await _cacheClient.DidNotReceive().UpdateTtlAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<TimeSpan>());
     }
 
     [Property(DisplayName = "Any removal does not attempt to update any item's TTL, synchronously.")]
-    public static void NoUpdate(
+    public void NoUpdate(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
-        NonNull<string> key,
-        TimeProvider time)
+        NonNull<string> key)
     {
-        var cacheClient = Substitute.For<ICacheClient>();
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        IDistributedCache sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         sut.Remove(key.Get);
 
-        _ = cacheClient.DidNotReceive().UpdateTtlAsync(
+        _ = _cacheClient.DidNotReceive().UpdateTtlAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<TimeSpan>());
     }
 
     [Property(DisplayName = "An error is converted to its wrapped exception.")]
-    public static async Task ErrorThrowsAsync(
+    public async Task ErrorThrowsAsync(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
-        TimeProvider time,
         Delete.Error error)
     {
-        var cacheClient = SetUpScenario(error);
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        _cacheClient.SetUpScenario(error);
+        var sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         var actual = await Record.ExceptionAsync(() => sut.RemoveAsync(key.Get));
 
-        var se = Assert.IsAssignableFrom<SdkException>(actual);
+        var se = Assert.IsType<SdkException>(actual, exactMatch: false);
         Assert.Equal(error.InnerException, se);
     }
 
     [Property(DisplayName = "An error is converted to its wrapped exception, synchronously.")]
-    public static void ErrorThrows(
+    public void ErrorThrows(
         IOptionsMonitor<MomentoCacheOptions> cacheOpts,
         NonNull<string> key,
-        TimeProvider time,
         Delete.Error error)
     {
-        var cacheClient = SetUpScenario(error);
-        IDistributedCache sut = new MomentoCache(cacheClient, cacheOpts, time);
+        _cacheClient.SetUpScenario(error);
+        IDistributedCache sut = new MomentoCache(_cacheClient, cacheOpts, s_time);
 
         var actual = Record.Exception(() => sut.Remove(key.Get));
 
         // note(cosborn) The important part of this test is that this _not_ be an `AggregateException`.
-        var se = Assert.IsAssignableFrom<SdkException>(actual);
+        var se = Assert.IsType<SdkException>(actual, exactMatch: false);
         Assert.Equal(error.InnerException, se);
     }
 
-    static ICacheClient SetUpScenario<TDelete>(TDelete response)
-        where TDelete : Delete
-    {
-        var cacheClient = Substitute.For<ICacheClient>();
-        _ = cacheClient.DeleteAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(response);
-        return cacheClient;
-    }
+    public void Dispose() => _cacheClient.Dispose();
 }

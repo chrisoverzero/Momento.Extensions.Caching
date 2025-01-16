@@ -19,7 +19,9 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>Adds Momento distributed caching services to the specified <see cref="IServiceCollection" />.</summary>
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
-    /// <param name="setupAction">An optional <see cref="Action{MomentoCacheOptions}"/> to configure <see cref="MomentoCacheOptions"/>.</param>
+    /// <param name="setupAction">
+    /// An optional <see cref="Action{T}"/> to configure an instance of the <see cref="MomentoCacheOptions"/> class.
+    /// </param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddMomentoDistributedCache(this IServiceCollection services, Action<MomentoCacheOptions>? setupAction = null)
     {

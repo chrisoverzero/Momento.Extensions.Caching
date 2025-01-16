@@ -21,17 +21,21 @@ namespace Momento.Extensions.Caching;
 sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<MomentoCacheOptions> cacheOpts, TimeProvider timeProvider)
     : IDistributedCache
 {
-    /// <summary>The key to the field in which the cached value is stored.</summary>
-    internal const string ValueKey = "v";
+    static readonly
+#if NET9_0_OR_GREATER
+    FrozenSet<string>
+#else
+    HashSet<string>
+#endif
+    s_refreshFields = [SlidingExpirationKey, AbsoluteExpirationKey];
 
-    /// <summary>The key to the field in which the sliding expiration value is stored.</summary>
-    internal const string SlidingExpirationKey = "s";
-
-    /// <summary>The key to the field in which the absolute expiration value is stored.</summary>
-    internal const string AbsoluteExpirationKey = "a";
-
-    static readonly FrozenSet<string> s_refreshFields = FrozenSet.ToFrozenSet([SlidingExpirationKey, AbsoluteExpirationKey]);
-    static readonly FrozenSet<string> s_getFields = FrozenSet.ToFrozenSet([ValueKey, SlidingExpirationKey, AbsoluteExpirationKey]);
+    static readonly
+#if NET9_0_OR_GREATER
+    FrozenSet<string>
+#else
+    HashSet<string>
+#endif
+    s_getFields = [ValueKey, .. s_refreshFields];
 
     /// <inheritdoc/>
     public Task<byte[]?> GetAsync(string key, CancellationToken token = default) => GetAndRefreshAsync(key, s_getFields, token);
@@ -52,8 +56,6 @@ sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<Mome
     /// <inheritdoc/>
     public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
     {
-        ArgumentNullException.ThrowIfNull(options);
-
         var now = timeProvider.GetUtcNow();
         var items = new Dictionary<string, byte[]>
         {
@@ -71,8 +73,8 @@ sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<Mome
                  * calculated absolute expiration (which functions here as a slide limit) are
                  * stored next to the value so they can be read in `GetAndRefresh` for a TTL update.
                  */
-                items[SlidingExpirationKey] = Marshal(sliding1);
-                items[AbsoluteExpirationKey] = Marshal(now + relative1);
+                items[SlidingExpirationKey] = Marshal.To(sliding1);
+                items[AbsoluteExpirationKey] = Marshal.To(now + relative1);
                 ttl = CollectionTtl.Of(sliding1);
                 break;
             case ({ } relative2, _):
@@ -90,7 +92,7 @@ sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<Mome
                  * forever. The length of a slide is stored next to the value so it can be read
                  * in `GetAndRefresh` for a TTL update.
                  */
-                items[SlidingExpirationKey] = Marshal(sliding3);
+                items[SlidingExpirationKey] = Marshal.To(sliding3);
                 ttl = CollectionTtl.Of(sliding3);
                 break;
             default:
@@ -131,28 +133,21 @@ sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<Mome
         }
     }
 
-    static byte[] Marshal(DateTimeOffset absolute) => Timestamp.FromDateTimeOffset(absolute).ToByteArray();
-
-    static byte[] Marshal(TimeSpan sliding) => Duration.FromTimeSpan(sliding).ToByteArray();
-
-    static DateTimeOffset ToAbsolute(byte[] absolute) => Timestamp.Parser.ParseFrom(absolute).ToDateTimeOffset();
-
-    static TimeSpan ToSliding(byte[] sliding) => Duration.Parser.ParseFrom(sliding).ToTimeSpan();
-
     async Task<byte[]?> GetAndRefreshAsync<TFields>(string key, TFields fields, CancellationToken token)
         where TFields : IEnumerable<string> => await cacheClient
         .DictionaryGetFieldsAsync(cacheOpts.CurrentValue.CacheName, key, fields)
         .ConfigureAwait(false) switch
         {
-            GetFields.Hit { ValueDictionaryStringByteArray: { } vd } => await GetAndRefreshCoreAsync(key, vd, token).ConfigureAwait(false),
+            GetFields.Hit { ValueDictionaryStringByteArray: { } vd } =>
+                await GetAndRefreshCoreAsync(key, vd.AsReadOnly(), token).ConfigureAwait(false),
             GetFields.Error { InnerException: { } ie } => throw ie,
             GetFields.Miss or _ => null,
         };
 
     async Task<byte[]?> GetAndRefreshCoreAsync<TDictionary>(string key, TDictionary dict, CancellationToken token)
-        where TDictionary : IDictionary<string, byte[]>
+        where TDictionary : IReadOnlyDictionary<string, byte[]>
     {
-        if (dict.TryGetValue(SlidingExpirationKey, out var sliding))
+        if (dict.GetValueOrDefault(SlidingExpirationKey) is { } slidingBytes)
         {
             /* note(cosborn)
              * The presence of a sliding expiration upon set means that
@@ -160,8 +155,8 @@ sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<Mome
              * In the absence of other information, it's refreshed to a
              * constant value which was stored next to the cached value.
              */
-            var ttl = ToSliding(sliding);
-            if (dict.TryGetValue(AbsoluteExpirationKey, out var absoluteBytes))
+            var ttl = Marshal.ToSliding(slidingBytes);
+            if (dict.GetValueOrDefault(AbsoluteExpirationKey) is { } absoluteBytes)
             {
                 /* note(cosborn)
                  * The presence of both a sliding and an absolute expiration upon set means that
@@ -170,7 +165,7 @@ sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<Mome
                  * - the next slide
                  * - the absolute expiration
                  */
-                var absolute = ToAbsolute(absoluteBytes);
+                var absolute = Marshal.ToAbsolute(absoluteBytes);
                 ttl = Min(ttl, absolute - timeProvider.GetUtcNow());
             }
 
@@ -192,7 +187,7 @@ sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<Mome
          * this impression that this was a miss (which it kind of was, I guess?) so they
          * can regenerate the value and set it into the cache.
          */
-        return dict.TryGetValue(ValueKey, out var value) ? value : null;
+        return dict.GetValueOrDefault(ValueKey);
 
         static TimeSpan Min(TimeSpan a, TimeSpan b) => a > b ? b : a;
     }
