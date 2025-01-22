@@ -57,7 +57,7 @@ sealed partial class MomentoCache(ICacheClient cacheClient, IOptionsMonitor<Mome
     public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
     {
         var now = timeProvider.GetUtcNow();
-        var items = new Dictionary<string, byte[]>
+        var items = new Dictionary<string, byte[]>(Ordinal)
         {
             [ValueKey] = value,
         };

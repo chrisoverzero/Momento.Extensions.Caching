@@ -49,14 +49,13 @@ static class Generators
         .Select(static t => new Ttl(t))
         .ToArbitrary();
 
-    public static Arbitrary<MomentoCacheOptions> MomentoCacheOptions { get; } = Arb.From(
-        from cacheName in Default.GeneratorFor<NonEmptyString>()
-        from defaultTtl in Ttl.Generator
-        select new MomentoCacheOptions
+    public static Arbitrary<MomentoCacheOptions> MomentoCacheOptions { get; } = Default.GeneratorFor<NonEmptyString>()
+        .Zip(Ttl.Generator, (cacheName, defaultTtl) => new MomentoCacheOptions
         {
             CacheName = cacheName.Get,
             DefaultTtl = defaultTtl,
-        });
+        })
+        .ToArbitrary();
 
     public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } = Gen.OneOf(
             Fixed.DistributedCacheEntryOptions.Generator,
@@ -133,8 +132,8 @@ static class Generators
 
         public static class Default
         {
-            public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } = Gen.Fresh(() => new DistributedCacheEntryOptions())
-                .ToArbitrary();
+            public static Arbitrary<DistributedCacheEntryOptions> DistributedCacheEntryOptions { get; } =
+                Gen.Fresh(() => new DistributedCacheEntryOptions()).ToArbitrary();
         }
 
         public static class Absolute

@@ -26,7 +26,7 @@
     <Using Include="Momento.Sdk.Auth" />
     <Using Include="Momento.Sdk.Config" />
     <Using Include="Momento.Sdk.Requests" />
-    <Using Static="true" Include="System.Globalization.CultureInfo" />
+    <Using Static="true" Include="System.StringComparer" />
     <Using Static="true" Include="Momento.Caching.Extensions.Constants" />
     <Using Alias="Delete" Include="Momento.Sdk.Responses.CacheDeleteResponse" />
     <Using Alias="GetField" Include="Momento.Sdk.Responses.CacheDictionaryGetFieldResponse" />
